@@ -28,10 +28,10 @@ CREATE TABLE IF NOT EXISTS users (
     region_id INT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS users_discounts (
+CREATE TABLE IF NOT EXISTS users_segments (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
-    discount SMALLINT NOT NULL
+    segment_id SMALLINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS interests (

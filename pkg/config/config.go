@@ -26,8 +26,7 @@ const (
 
 func InitConfig() {
 	envPath, _ := os.Getwd()
-	envPath = filepath.Join(envPath, "..") // workdir is cmd
-	envPath = filepath.Join(envPath, "/deploy")
+	envPath = filepath.Join(envPath, "..")
 
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")

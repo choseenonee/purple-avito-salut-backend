@@ -6,7 +6,6 @@ import (
 	"template/internal/delivery"
 	"template/pkg/config"
 	"template/pkg/database"
-	"template/pkg/database/cached"
 	"template/pkg/log"
 	"template/pkg/trace"
 )
@@ -30,13 +29,9 @@ func main() {
 	db := database.GetDB()
 	logger.Info("Database Initialized")
 
-	redisSession := cached.InitRedis(tracer)
-	logger.Info("Redis Initialized")
-
 	delivery.Start(
 		db,
 		logger,
-		redisSession,
 		tracer,
 	)
 

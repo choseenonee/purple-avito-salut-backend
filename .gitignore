@@ -24,7 +24,7 @@ go.work
 .idea/
 
 # Env files
-deploy/.env
+.env
 
 # log files
 *.log

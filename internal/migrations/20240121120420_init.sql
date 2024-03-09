@@ -54,7 +54,7 @@ ALTER TABLE relationships_microcategories
     ADD CONSTRAINT fk_child
         FOREIGN KEY (child_id) REFERENCES regions(id);
 
-ALTER TABLE users_discounts
+ALTER TABLE users_segments
     ADD CONSTRAINT fk_user
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 
@@ -68,5 +68,5 @@ ALTER TABLE interests
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS regions, relationships_regions, microcategories, relationships_microcategories, users, users_discounts, interests   CASCADE
+DROP TABLE IF EXISTS regions, relationships_regions, microcategories, relationships_microcategories, users, users_segments, interests   CASCADE
 -- +goose StatementEnd

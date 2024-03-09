@@ -19,3 +19,12 @@
 
 # Go workspace file
 go.work
+
+# JetBrains temp
+.idea/
+
+# Env files
+deploy/.env
+
+# log files
+*.log

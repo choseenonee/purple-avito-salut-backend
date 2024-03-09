@@ -1,10 +1,13 @@
 package fixtures
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/guregu/null"
 	"github.com/jmoiron/sqlx"
 	"os"
+	"template/internal/models"
 	"template/internal/repository"
 	"template/pkg/config"
 	"template/pkg/database"
@@ -54,18 +57,45 @@ func LoadRegions(filepath ...string) error {
 func loadRegions(regionRepo repository.Regions, regions map[string]map[string]map[string][]string) ([]int, error) {
 	var createdIDs []int
 
-	//for key1, value1 := range regions {
-	//	fmt.Println(key1)
-	//	for key2, value2 := range value1 {
-	//		fmt.Println(key2)
-	//		for key3, value3 := range value2 {
-	//			fmt.Println(key3)
-	//			for _, value := range value3 {
-	//				fmt.Println(value)
-	//			}
-	//		}
-	//	}
-	//}
+	for key1, value1 := range regions {
+		data := models.RegionBase{ParentID: null.NewInt(0, false), Name: key1}
+		id1, err := regionRepo.Create(context.Background(), data)
+		if err != nil {
+			return []int{}, err
+		}
+
+		for key2, value2 := range value1 {
+			data := models.RegionBase{ParentID: null.NewInt(int64(id1), true), Name: key2}
+			id2, err := regionRepo.Create(context.Background(), data)
+			if err != nil {
+				return []int{}, err
+			}
+
+			for key3, value3 := range value2 {
+				data := models.RegionBase{ParentID: null.NewInt(int64(id2), true), Name: key3}
+				id3, err := regionRepo.Create(context.Background(), data)
+				if err != nil {
+					return []int{}, err
+				}
+
+				for _, value := range value3 {
+					data := models.RegionBase{ParentID: null.NewInt(int64(id3), true), Name: value}
+					id4, err := regionRepo.Create(context.Background(), data)
+					if err != nil {
+						return []int{}, err
+					}
+
+					createdIDs = append(createdIDs, id4)
+				}
+
+				createdIDs = append(createdIDs, id3)
+			}
+
+			createdIDs = append(createdIDs, id2)
+		}
+
+		createdIDs = append(createdIDs, id1)
+	}
 
 	return createdIDs, nil
 }

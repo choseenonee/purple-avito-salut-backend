@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS regions (
     id SERIAL PRIMARY KEY,
-    name VARCHAR UNIQUE NOT NULL
+    name VARCHAR NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS relationships_regions (

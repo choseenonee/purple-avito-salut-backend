@@ -26,3 +26,7 @@ func (m matrixService) GetHistory(ctx context.Context, data models.GetHistoryMat
 func (m matrixService) GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error) {
 	return m.matrixRepo.GetDifference(ctx, matrixName1, matrixName2)
 }
+
+func (m matrixService) GetTendency(ctx context.Context, data models.GetTendencyNode) ([]models.ResponseTendencyNode, error) {
+	return m.matrixRepo.GetPriceTendency(ctx, data)
+}

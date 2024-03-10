@@ -135,6 +135,9 @@ func TestMatrixRepo_GetPriceTendency(t *testing.T) {
 		TimeEnd:         tomorrow,
 	}
 
+	fmt.Println(timestamp)
+	fmt.Println(tomorrow)
+
 	tendency, err := repo.GetPriceTendency(context.Background(), data)
 
 	fmt.Println(tendency)

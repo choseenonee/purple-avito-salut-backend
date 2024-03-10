@@ -1,4 +1,15 @@
 definitions:
+  models.GetTendencyNode:
+    properties:
+      microcategory_id:
+        type: integer
+      region_id:
+        type: integer
+      time_end:
+        type: string
+      time_start:
+        type: string
+    type: object
   models.MatrixDifference:
     properties:
       added:
@@ -24,6 +35,13 @@ definitions:
         type: integer
       region_id:
         type: integer
+    type: object
+  models.ResponseTendencyNode:
+    properties:
+      price:
+        type: integer
+      timestamp:
+        type: string
     type: object
   swagger.GetHistoryMatrix:
     properties:
@@ -150,6 +168,41 @@ paths:
           schema:
             items:
               $ref: '#/definitions/swagger.ResponseHistoryMatrix'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - matrix
+  /matrix/get_tendency:
+    put:
+      consumes:
+      - application/json
+      description: Retrieves price difference in time span
+      parameters:
+      - description: Get data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/models.GetTendencyNode'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Found prices in time span and one before it
+          schema:
+            items:
+              $ref: '#/definitions/models.ResponseTendencyNode'
             type: array
         "400":
           description: Invalid input

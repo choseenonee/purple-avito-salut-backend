@@ -176,9 +176,80 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/matrix/get_tendency": {
+            "put": {
+                "description": "Retrieves price difference in time span",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matrix"
+                ],
+                "parameters": [
+                    {
+                        "description": "Get data",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.GetTendencyNode"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found prices in time span and one before it",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ResponseTendencyNode"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "models.GetTendencyNode": {
+            "type": "object",
+            "properties": {
+                "microcategory_id": {
+                    "type": "integer"
+                },
+                "region_id": {
+                    "type": "integer"
+                },
+                "time_end": {
+                    "type": "string"
+                },
+                "time_start": {
+                    "type": "string"
+                }
+            }
+        },
         "models.MatrixDifference": {
             "type": "object",
             "properties": {
@@ -216,6 +287,17 @@ const docTemplate = `{
                 },
                 "region_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.ResponseTendencyNode": {
+            "type": "object",
+            "properties": {
+                "price": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "string"
                 }
             }
         },

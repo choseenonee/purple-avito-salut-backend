@@ -21,6 +21,7 @@ func RegisterMatrixUser(r *gin.Engine, db *sqlx.DB, logger *log.Logs, tracer tra
 	matrixRouter.GET("/get_difference", matrixHandlers.GetDifference)
 	matrixRouter.POST("/create", matrixHandlers.CreateMatrix)
 	matrixRouter.PUT("/get_history", matrixHandlers.GetHistory)
+	matrixRouter.PUT("/get_tendency", matrixHandlers.GetTendency)
 
 	return matrixRouter
 }

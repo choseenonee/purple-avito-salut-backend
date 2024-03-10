@@ -30,3 +30,21 @@ type GetHistoryMatrix struct {
 	TimeEnd    time.Time `json:"time_end"`
 	IsBaseline null.Bool `json:"is_baseline,omitempty"`
 }
+
+type ResponseHistoryMatrix struct {
+	Name       string      `json:"name"`
+	TimeStamp  time.Time   `json:"timestamp"`
+	ParentName null.String `json:"parent_name"`
+}
+
+type GetTendencyNode struct {
+	MicrocategoryID int       `json:"microcategory_id"`
+	RegionID        int       `json:"region_id"`
+	TimeStart       time.Time `json:"time_start"`
+	TimeEnd         time.Time `json:"time_end"`
+}
+
+type ResponseTendencyNode struct {
+	TimeStamp time.Time `json:"timestamp"`
+	Price     int       `json:"price"`
+}

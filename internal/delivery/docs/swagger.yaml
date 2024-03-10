@@ -1,19 +1,4 @@
 definitions:
-  models.Matrix:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/models.MatrixNode'
-        type: array
-      is_baseline:
-        type: boolean
-      name:
-        type: string
-      parent_name:
-        $ref: '#/definitions/null.String'
-      timestamp:
-        type: string
-    type: object
   models.MatrixNode:
     properties:
       microcategory_id:
@@ -22,14 +7,6 @@ definitions:
         type: integer
       region_id:
         type: integer
-    type: object
-  null.String:
-    properties:
-      string:
-        type: string
-      valid:
-        description: Valid is true if String is not NULL
-        type: boolean
     type: object
   swagger.GetHistoryMatrix:
     properties:
@@ -51,6 +28,15 @@ definitions:
       name:
         type: string
       parent_name:
+        type: string
+    type: object
+  swagger.ResponseHistoryMatrix:
+    properties:
+      name:
+        type: string
+      parent_name:
+        type: string
+      timestamp:
         type: string
     type: object
 info:
@@ -107,7 +93,7 @@ paths:
           description: Found matrixes
           schema:
             items:
-              $ref: '#/definitions/models.Matrix'
+              $ref: '#/definitions/swagger.ResponseHistoryMatrix'
             type: array
         "400":
           description: Invalid input

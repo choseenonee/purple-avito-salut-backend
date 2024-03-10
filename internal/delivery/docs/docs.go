@@ -95,7 +95,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Matrix"
+                                "$ref": "#/definitions/swagger.ResponseHistoryMatrix"
                             }
                         }
                     },
@@ -122,29 +122,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.Matrix": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.MatrixNode"
-                    }
-                },
-                "is_baseline": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "parent_name": {
-                    "$ref": "#/definitions/null.String"
-                },
-                "timestamp": {
-                    "type": "string"
-                }
-            }
-        },
         "models.MatrixNode": {
             "type": "object",
             "properties": {
@@ -156,18 +133,6 @@ const docTemplate = `{
                 },
                 "region_id": {
                     "type": "integer"
-                }
-            }
-        },
-        "null.String": {
-            "type": "object",
-            "properties": {
-                "string": {
-                    "type": "string"
-                },
-                "valid": {
-                    "description": "Valid is true if String is not NULL",
-                    "type": "boolean"
                 }
             }
         },
@@ -201,6 +166,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "parent_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "swagger.ResponseHistoryMatrix": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "parent_name": {
+                    "type": "string"
+                },
+                "timestamp": {
                     "type": "string"
                 }
             }

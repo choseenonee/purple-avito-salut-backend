@@ -75,3 +75,25 @@ func TestMatrixRepo_Create(t *testing.T) {
 	}
 	fmt.Println(name)
 }
+
+func TestMatrixRepo_GetPriceTendency(t *testing.T) {
+	db := initDB()
+
+	repo := InitMatrixRepo(db)
+
+	today := time.Now()
+	yesterday := today.AddDate(0, 0, -1)
+	tomorrow := time.Now().Add(time.Hour * 24)
+
+	data := models.GetTendencyNode{
+		MicrocategoryID: 1,
+		RegionID:        1,
+		TimeStart:       yesterday,
+		TimeEnd:         tomorrow,
+	}
+
+	tendency, err := repo.GetPriceTendency(context.Background(), data)
+
+	fmt.Println(tendency)
+	fmt.Println(err)
+}

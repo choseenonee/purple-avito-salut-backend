@@ -15,7 +15,7 @@ func (m matrixService) Create(ctx context.Context, matrix models.MatrixBase) (st
 	return m.matrixRepo.CreateMatrix(ctx, matrix)
 }
 
-func (m matrixService) GetHistory(ctx context.Context, data models.GetHistoryMatrix) ([]models.Matrix, error) {
+func (m matrixService) GetHistory(ctx context.Context, data models.GetHistoryMatrix) ([]models.ResponseHistoryMatrix, error) {
 	return m.matrixRepo.GetHistory(ctx, data)
 }
 

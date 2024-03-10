@@ -23,5 +23,6 @@ type Microcategories interface {
 
 type Matrix interface {
 	CreateMatrix(ctx context.Context, matrix models.MatrixBase) (string, error)
-	GetHistory(ctx context.Context, matrix models.GetHistoryMatrix) ([]models.Matrix, error)
+	GetHistory(ctx context.Context, matrix models.GetHistoryMatrix) ([]models.ResponseHistoryMatrix, error)
+	GetPriceTendency(ctx context.Context, data models.GetTendencyNode) ([]models.ResponseTendencyNode, error)
 }

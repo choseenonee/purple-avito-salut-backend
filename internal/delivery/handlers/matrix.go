@@ -22,7 +22,6 @@ func InitMatrixHandler(service service.Matrix, tracer trace.Tracer) MatrixHandle
 	}
 }
 
-
 // CreateMatrix @Summary Create matrix
 // @Tags matrix
 // @Accept  json
@@ -54,6 +53,41 @@ func (m MatrixHandler) CreateMatrix(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+// GetTendency @Summary Get price tendency
+// @Description Retrieves price difference in time span
+// @Tags matrix
+// @Accept  json
+// @Produce  json
+// @Param data body models.GetTendencyNode true "Get data"
+// @Success 200 {object} []models.ResponseTendencyNode "Found prices in time span and one before it"
+// @Failure 400 {object} map[string]string "Invalid input, missing matrix names"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /matrix/get_difference [get]
+func (m MatrixHandler) GetTendency(c *gin.Context) {
+	ctx, span := m.tracer.Start(c.Request.Context(), GetHistory)
+	defer span.End()
+
+	matrixName1, ok := c.GetQuery("from_name")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "matrixName1 not provided"})
+		return
+	}
+	matrixName2, ok := c.GetQuery("to_name")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "matrixName2 not provided"})
+		return
+	}
+
+	span.AddEvent(CallToService)
+	matrices, err := m.service.GetDifference(ctx, matrixName1, matrixName2)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, matrices)
+}
 
 	c.JSON(http.StatusOK, name)
 }
@@ -123,7 +157,7 @@ func (m MatrixHandler) GetDifference(c *gin.Context) {
 
 	c.JSON(http.StatusOK, matrices)
 }
-
+  
 // GetMatrix @Summary Get matrix by name and page
 // @Description Retrieves a specific page of the matrix identified by its name.
 // @Tags matrix

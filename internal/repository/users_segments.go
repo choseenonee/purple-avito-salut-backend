@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/jmoiron/sqlx"
 	"template/internal/models"
-	"template/pkg/utils"
+	"template/pkg/customerr"
 )
 
 type usersSegmentsRepo struct {
@@ -20,7 +20,7 @@ func (r usersSegmentsRepo) Create(ctx context.Context, userSegment models.UserSe
 
 	tx, err := r.db.Beginx()
 	if err != nil {
-		return 0, utils.ErrNormalizer(utils.ErrorPair{Message: utils.TransactionErr, Err: err})
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.TransactionErr, Err: err})
 	}
 
 	createRegionQuery := `INSERT INTO users_segments (user_id, segment_id) VALUES ($1, $2) RETURNING id;`
@@ -28,17 +28,17 @@ func (r usersSegmentsRepo) Create(ctx context.Context, userSegment models.UserSe
 	err = tx.QueryRowxContext(ctx, createRegionQuery, userSegment.UserID, userSegment.SegmentID).Scan(&createdUserSegmentID)
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return 0, utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.ScanErr, Err: err},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return 0, customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.ScanErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
 
-		return 0, utils.ErrNormalizer(utils.ErrorPair{Message: utils.ScanErr, Err: err})
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
 	}
 
 	if err = tx.Commit(); err != nil {
-		return 0, utils.ErrNormalizer(utils.ErrorPair{Message: utils.CommitErr, Err: err})
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.CommitErr, Err: err})
 	}
 
 	return createdUserSegmentID, nil

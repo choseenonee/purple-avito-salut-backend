@@ -148,11 +148,11 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Found matrices",
+                        "description": "Found matrixes",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Matrix"
+                                "$ref": "#/definitions/swagger.ResponseHistoryMatrix"
                             }
                         }
                     },
@@ -238,29 +238,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.Matrix": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.MatrixNode"
-                    }
-                },
-                "is_baseline": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "parent_name": {
-                    "$ref": "#/definitions/null.String"
-                },
-                "timestamp": {
-                    "type": "string"
-                }
-            }
-        },
         "models.MatrixDifference": {
             "type": "object",
             "properties": {
@@ -301,18 +278,6 @@ const docTemplate = `{
                 }
             }
         },
-        "null.String": {
-            "type": "object",
-            "properties": {
-                "string": {
-                    "type": "string"
-                },
-                "valid": {
-                    "description": "Valid is true if String is not NULL",
-                    "type": "boolean"
-                }
-            }
-        },
         "swagger.GetHistoryMatrix": {
             "type": "object",
             "properties": {
@@ -343,6 +308,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "parent_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "swagger.ResponseHistoryMatrix": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "parent_name": {
+                    "type": "string"
+                },
+                "timestamp": {
                     "type": "string"
                 }
             }

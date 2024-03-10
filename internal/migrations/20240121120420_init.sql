@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS microcategories (
 
 CREATE TABLE IF NOT EXISTS relationships_microcategories (
     id SERIAL PRIMARY KEY,
-    parent_id INT NOT NULL,
+    parent_id INT NULL,
     child_id INT NOT NULL
 );
 
@@ -50,9 +50,9 @@ ALTER TABLE relationships_regions
 
 ALTER TABLE relationships_microcategories
     ADD CONSTRAINT fk_parent
-        FOREIGN KEY (parent_id) REFERENCES regions(id),
+        FOREIGN KEY (parent_id) REFERENCES microcategories(id),
     ADD CONSTRAINT fk_child
-        FOREIGN KEY (child_id) REFERENCES regions(id);
+        FOREIGN KEY (child_id) REFERENCES microcategories(id);
 
 ALTER TABLE users_segments
     ADD CONSTRAINT fk_user

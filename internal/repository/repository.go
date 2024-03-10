@@ -16,3 +16,7 @@ type UsersSegments interface {
 type Users interface {
 	Create(ctx context.Context, user models.UserBase) (int, error)
 }
+
+type Microcategories interface {
+	Create(ctx context.Context, microcategory models.MicrocategoryBase) (int, error)
+}

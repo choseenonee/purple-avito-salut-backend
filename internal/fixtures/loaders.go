@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	Regions       = "../internal/fixtures/regions.json"
-	UsersSegments = "../internal/fixtures/users-segments.json"
-	Users         = "../internal/fixtures/users.json"
+	Regions         = "../internal/fixtures/regions.json"
+	UsersSegments   = "../internal/fixtures/users-segments.json"
+	Users           = "../internal/fixtures/users.json"
+	Microcategories = "../internal/fixtures/microcategories.json"
 )
 
 func Loader(filepath ...string) error {
@@ -69,6 +70,19 @@ func Loader(filepath ...string) error {
 			}
 
 			_, err := loadUsers(userRepo, rawUsers)
+			if err != nil {
+				return err
+			}
+			//fmt.Println(createdIDs)
+		case Microcategories:
+			microcategoriesRepo := repository.InitMicrocategoryRepo(db)
+
+			var rawMicrocategories map[string]map[string]map[string]map[string][]string
+			if err := json.Unmarshal(bytes, &rawMicrocategories); err != nil {
+				return err
+			}
+
+			_, err := loadMicrocategories(microcategoriesRepo, rawMicrocategories)
 			if err != nil {
 				return err
 			}
@@ -163,6 +177,60 @@ func loadUsers(userRepo repository.Users, users []models.UserBase) ([]int, error
 		}
 
 		createdIDs = append(createdIDs, id)
+	}
+
+	return createdIDs, nil
+}
+
+func loadMicrocategories(microcategoryRepo repository.Microcategories, microcategories map[string]map[string]map[string]map[string][]string) ([]int, error) {
+	var createdIDs []int
+
+	for key1, value1 := range microcategories {
+		data := models.MicrocategoryBase{ParentID: null.NewInt(0, false), Name: key1}
+		id1, err := microcategoryRepo.Create(context.Background(), data)
+		if err != nil {
+			return []int{}, err
+		}
+
+		for key2, value2 := range value1 {
+			data := models.MicrocategoryBase{ParentID: null.NewInt(int64(id1), true), Name: key2}
+			id2, err := microcategoryRepo.Create(context.Background(), data)
+			if err != nil {
+				return []int{}, err
+			}
+
+			for key3, value3 := range value2 {
+				data := models.MicrocategoryBase{ParentID: null.NewInt(int64(id2), true), Name: key3}
+				id3, err := microcategoryRepo.Create(context.Background(), data)
+				if err != nil {
+					return []int{}, err
+				}
+
+				for key4, value4 := range value3 {
+					data := models.MicrocategoryBase{ParentID: null.NewInt(int64(id3), true), Name: key4}
+					id4, err := microcategoryRepo.Create(context.Background(), data)
+					if err != nil {
+						return []int{}, err
+					}
+
+					for _, value := range value4 {
+						data := models.MicrocategoryBase{ParentID: null.NewInt(int64(id4), true), Name: value}
+						id5, err := microcategoryRepo.Create(context.Background(), data)
+						if err != nil {
+							return []int{}, err
+						}
+
+						createdIDs = append(createdIDs, id5)
+					}
+
+					createdIDs = append(createdIDs, id3)
+				}
+
+				createdIDs = append(createdIDs, id2)
+			}
+
+			createdIDs = append(createdIDs, id1)
+		}
 	}
 
 	return createdIDs, nil

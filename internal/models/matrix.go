@@ -24,3 +24,9 @@ type Matrix struct {
 	MatrixBase
 	TimeStamp time.Time `json:"timestamp"`
 }
+
+type GetHistoryMatrix struct {
+	TimeStart  time.Time `json:"time_start"`
+	TimeEnd    time.Time `json:"time_end"`
+	IsBaseline null.Bool `json:"is_baseline,omitempty"`
+}

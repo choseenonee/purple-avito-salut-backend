@@ -22,10 +22,10 @@ func InitMatrixRepo(db *sqlx.DB) Matrix {
 	return matrixRepo{db: db}
 }
 
-func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) error {
+func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) (string, error) {
 	tx, err := m.db.Beginx()
 	if err != nil {
-		return utils.ErrNormalizer(utils.ErrorPair{Message: utils.TransactionErr, Err: err})
+		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.TransactionErr, Err: err})
 	}
 
 	timestamp := time.Now()
@@ -43,31 +43,31 @@ func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) 
 	res, err := tx.ExecContext(ctx, createMatrixQuery, valueArgs...)
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return utils.ErrNormalizer(
+			return "", utils.ErrNormalizer(
 				utils.ErrorPair{Message: utils.ExecErr, Err: err},
 				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
 			)
 		}
-		return utils.ErrNormalizer(utils.ErrorPair{Message: utils.ExecErr, Err: err})
+		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.ExecErr, Err: err})
 	}
 	count, err := res.RowsAffected()
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return utils.ErrNormalizer(
+			return "", utils.ErrNormalizer(
 				utils.ErrorPair{Message: utils.RowsErr, Err: err},
 				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
 			)
 		}
-		return utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: err})
+		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: err})
 	}
 	if int(count) != len(matrix.Data) {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return utils.ErrNormalizer(
+			return "", utils.ErrNormalizer(
 				utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)},
 				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
 			)
 		}
-		return utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)})
+		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)})
 	}
 
 	createMetadataQuery := `INSERT INTO matrix_metadata (matrix_name, timestamp, is_baseline, parent_matrix_name)
@@ -76,52 +76,52 @@ func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) 
 	res, err = tx.ExecContext(ctx, createMetadataQuery, matrixName, timestamp, matrix.IsBaseLine, matrix.ParentName)
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return utils.ErrNormalizer(
+			return "", utils.ErrNormalizer(
 				utils.ErrorPair{Message: utils.ExecErr, Err: err},
 				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
 			)
 		}
-		return utils.ErrNormalizer(utils.ErrorPair{Message: utils.ExecErr, Err: err})
+		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.ExecErr, Err: err})
 	}
 	count, err = res.RowsAffected()
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return utils.ErrNormalizer(
+			return "", utils.ErrNormalizer(
 				utils.ErrorPair{Message: utils.RowsErr, Err: err},
 				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
 			)
 		}
-		return utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: err})
+		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: err})
 	}
 	if int(count) != 1 {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return utils.ErrNormalizer(
+			return "", utils.ErrNormalizer(
 				utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)},
 				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
 			)
 		}
-		return utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)})
+		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)})
 	}
 
 	if err = tx.Commit(); err != nil {
-		return utils.ErrNormalizer(utils.ErrorPair{Message: utils.CommitErr, Err: err})
+		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.CommitErr, Err: err})
 	}
 
-	return nil
+	return matrixName, nil
 }
 
-func (m matrixRepo) GetHistory(ctx context.Context, timeStart time.Time, timeEnd time.Time, isBaseline null.Bool) ([]models.Matrix, error) {
+func (m matrixRepo) GetHistory(ctx context.Context, data models.GetHistoryMatrix) ([]models.Matrix, error) {
 	var matrixes []models.Matrix
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	query := psql.Select("name, microcategory_id, region_id, matrix_metadata.timestamp, matrix_metadata.parent_matrix_name").
 		From("matrix").
 		Join("matrix_metadata ON matrix.name = matrix_metadata.matrix_name").
-		Where(sq.And{sq.GtOrEq{"matrix_metadata.timestamp": timeStart}, sq.LtOrEq{"matrix_metadata.timestamp": timeEnd}}).OrderBy(`
+		Where(sq.And{sq.GtOrEq{"matrix_metadata.timestamp": data.TimeStart}, sq.LtOrEq{"matrix_metadata.timestamp": data.TimeEnd}}).OrderBy(`
 			matrix_metadata.matrix_name ASC`)
 
-	if isBaseline.Valid {
-		query = query.Where(sq.Eq{"matrix_metadata.is_baseline": isBaseline})
+	if data.IsBaseline.Valid {
+		query = query.Where(sq.Eq{"matrix_metadata.is_baseline": data.IsBaseline})
 	}
 
 	// Собираем запрос

@@ -28,9 +28,16 @@ func TestMatrixRepo_GetHistory(t *testing.T) {
 
 	today := time.Now()
 	yesterday := today.AddDate(0, 0, -1)
+	tomorrow := time.Now().Add(time.Hour * 24)
+
+	data := models.GetHistoryMatrix{
+		TimeStart:  yesterday,
+		TimeEnd:    tomorrow,
+		IsBaseline: null.NewBool(false, false),
+	}
 
 	repo := InitMatrixRepo(db)
-	res, err := repo.GetHistory(context.Background(), yesterday, time.Now().Add(time.Hour*24), null.NewBool(false, false))
+	res, err := repo.GetHistory(context.Background(), data)
 	fmt.Println(res)
 	fmt.Println(err)
 }
@@ -62,8 +69,9 @@ func TestMatrixRepo_Create(t *testing.T) {
 		},
 	}
 
-	err := repo.CreateMatrix(context.Background(), data)
+	name, err := repo.CreateMatrix(context.Background(), data)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(name)
 }

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"template/internal/models"
+	"time"
 )
 
 type Regions interface {
@@ -19,4 +20,8 @@ type Users interface {
 
 type Microcategories interface {
 	Create(ctx context.Context, microcategory models.MicrocategoryBase) (int, error)
+}
+
+type Matrix interface {
+	GetHistory(ctx context.Context, timeStart time.Time, timeEnd time.Time, matrixType string)
 }

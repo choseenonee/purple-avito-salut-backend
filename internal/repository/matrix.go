@@ -7,7 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"strings"
 	"template/internal/models"
-	"template/pkg/utils"
+	"template/pkg/customerr"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -25,11 +25,22 @@ func InitMatrixRepo(db *sqlx.DB) Matrix {
 func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) (string, error) {
 	tx, err := m.db.Beginx()
 	if err != nil {
-		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.TransactionErr, Err: err})
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.TransactionErr, Err: err})
 	}
 
 	timestamp := time.Now()
 	matrixName := fmt.Sprintf("%s_%d", matrix.Name, timestamp.Unix())
+
+	var parentNameExists = false
+	parentMatrixExistsQuery := `SELECT 1 FROM matrix WHERE name = $1;`
+	rows, err := tx.QueryContext(ctx, parentMatrixExistsQuery, matrix.ParentName)
+	for rows.Next() {
+		parentNameExists = true
+	}
+
+	if !parentNameExists {
+		return "", customerr.ParentMatrixDontExist
+	}
 
 	valueString := make([]string, 0, len(matrix.Data))
 	valueArgs := make([]interface{}, 0, len(matrix.Data))
@@ -43,31 +54,31 @@ func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) 
 	res, err := tx.ExecContext(ctx, createMatrixQuery, valueArgs...)
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return "", utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.ExecErr, Err: err},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.ExecErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
-		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.ExecErr, Err: err})
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
 	}
 	count, err := res.RowsAffected()
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return "", utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.RowsErr, Err: err},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.RowsErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
-		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: err})
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 	if int(count) != len(matrix.Data) {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return "", utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
-		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)})
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)})
 	}
 
 	createMetadataQuery := `INSERT INTO matrix_metadata (matrix_name, timestamp, is_baseline, parent_matrix_name)
@@ -76,35 +87,35 @@ func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) 
 	res, err = tx.ExecContext(ctx, createMetadataQuery, matrixName, timestamp, matrix.IsBaseLine, matrix.ParentName)
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return "", utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.ExecErr, Err: err},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.ExecErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
-		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.ExecErr, Err: err})
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
 	}
 	count, err = res.RowsAffected()
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return "", utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.RowsErr, Err: err},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.RowsErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
-		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: err})
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 	if int(count) != 1 {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return "", utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
-		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)})
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)})
 	}
 
 	if err = tx.Commit(); err != nil {
-		return "", utils.ErrNormalizer(utils.ErrorPair{Message: utils.CommitErr, Err: err})
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.CommitErr, Err: err})
 	}
 
 	return matrixName, nil

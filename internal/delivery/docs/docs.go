@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/public/create": {
+        "/matrix/create": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -24,25 +24,25 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "public"
+                    "matrix"
                 ],
-                "summary": "Create user",
+                "summary": "Create matrix",
                 "parameters": [
                     {
-                        "description": "User create",
+                        "description": "Matrix create",
                         "name": "data",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/entities.UserCreate"
+                            "$ref": "#/definitions/swagger.MatrixBase"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successfully created user, returning JWT and Session",
+                        "description": "Successfully created matrix",
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     },
                     "400": {
@@ -66,8 +66,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/public/login": {
-            "post": {
+        "/matrix/get_history": {
+            "put": {
                 "consumes": [
                     "application/json"
                 ],
@@ -75,222 +75,32 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "public"
+                    "matrix"
                 ],
-                "summary": "Login in mobile user",
+                "summary": "Get matrixes by time start, time end and matrix type (can be null)",
                 "parameters": [
                     {
-                        "description": "Mobile user login",
+                        "description": "Get data",
                         "name": "data",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/entities.UserCreate"
+                            "$ref": "#/definitions/swagger.GetHistoryMatrix"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successfully loginned user, returning JWT and Session",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/public/refresh": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "public"
-                ],
-                "summary": "Refresh tokens",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Session ID",
-                        "name": "Session",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successfully authorized, returning JWT and new session_id",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/user/delete": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "user"
-                ],
-                "summary": "Delete user",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Session ID",
-                        "name": "Session",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "default": "Bearer \u003cAdd access token here\u003e",
-                        "description": "Insert your access token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successfully response",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "JWT is absent or invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "JWT is invalid or expired",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/user/me": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "user"
-                ],
-                "summary": "Get user data",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Session ID",
-                        "name": "Session",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "default": "Bearer \u003cAdd access token here\u003e",
-                        "description": "Insert your access token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successfully response with user data",
+                        "description": "Found matrixes",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/entities.User"
+                                "$ref": "#/definitions/models.Matrix"
                             }
                         }
                     },
                     "400": {
-                        "description": "JWT is absent or invalid input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "JWT is invalid or expired",
+                        "description": "Invalid input",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -312,30 +122,89 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "entities.User": {
+        "models.Matrix": {
             "type": "object",
             "properties": {
-                "id": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MatrixNode"
+                    }
+                },
+                "is_baseline": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_name": {
+                    "$ref": "#/definitions/null.String"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.MatrixNode": {
+            "type": "object",
+            "properties": {
+                "microcategory_id": {
                     "type": "integer"
                 },
-                "name": {
-                    "description": "эта библиотека спасает, когда происходит попытка Scan'ировать null-value в Goшный тип данных",
-                    "type": "string"
+                "price": {
+                    "type": "integer"
+                },
+                "region_id": {
+                    "type": "integer"
                 }
             }
         },
-        "entities.UserCreate": {
+        "null.String": {
             "type": "object",
             "properties": {
-                "name": {
-                    "description": "эта библиотека спасает, когда происходит попытка Scan'ировать null-value в Goшный тип данных",
+                "string": {
                     "type": "string"
                 },
-                "password": {
+                "valid": {
+                    "description": "Valid is true if String is not NULL",
+                    "type": "boolean"
+                }
+            }
+        },
+        "swagger.GetHistoryMatrix": {
+            "type": "object",
+            "properties": {
+                "is_baseline": {
+                    "type": "boolean"
+                },
+                "time_end": {
+                    "type": "string"
+                },
+                "time_start": {
                     "type": "string"
                 }
             }
         },
+        "swagger.MatrixBase": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MatrixNode"
+                    }
+                },
+                "is_baseline": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_name": {
+                    "type": "string"
+                }
+            }
+        }
     }
 }`
 

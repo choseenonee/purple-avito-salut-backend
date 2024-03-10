@@ -1,23 +1,27 @@
 definitions:
-  entities.User:
+  models.Matrix:
     properties:
-      id:
-        type: integer
+      data:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+      is_baseline:
+        type: boolean
       name:
-        allOf:
-        - $ref: '#/definitions/null.String'
-        description: эта библиотека спасает, когда происходит попытка Scan'ировать
-          null-value в Goшный тип данных
-    type: object
-  entities.UserCreate:
-    properties:
-      name:
-        allOf:
-        - $ref: '#/definitions/null.String'
-        description: эта библиотека спасает, когда происходит попытка Scan'ировать
-          null-value в Goшный тип данных
-      password:
         type: string
+      parent_name:
+        $ref: '#/definitions/null.String'
+      timestamp:
+        type: string
+    type: object
+  models.MatrixNode:
+    properties:
+      microcategory_id:
+        type: integer
+      price:
+        type: integer
+      region_id:
+        type: integer
     type: object
   null.String:
     properties:
@@ -27,27 +31,49 @@ definitions:
         description: Valid is true if String is not NULL
         type: boolean
     type: object
+  swagger.GetHistoryMatrix:
+    properties:
+      is_baseline:
+        type: boolean
+      time_end:
+        type: string
+      time_start:
+        type: string
+    type: object
+  swagger.MatrixBase:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+      is_baseline:
+        type: boolean
+      name:
+        type: string
+      parent_name:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
-  /public/create:
+  /matrix/create:
     post:
       consumes:
       - application/json
       parameters:
-      - description: User create
+      - description: Matrix create
         in: body
         name: data
         required: true
         schema:
-          $ref: '#/definitions/entities.UserCreate'
+          $ref: '#/definitions/swagger.MatrixBase'
       produces:
       - application/json
       responses:
         "200":
-          description: Successfully created user, returning JWT and Session
+          description: Successfully created matrix
           schema:
-            type: integer
+            type: string
         "400":
           description: Invalid input
           schema:
@@ -60,157 +86,31 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Create user
+      summary: Create matrix
       tags:
-      - public
-  /public/login:
-    post:
+      - matrix
+  /matrix/get_history:
+    put:
       consumes:
       - application/json
       parameters:
-      - description: Mobile user login
+      - description: Get data
         in: body
         name: data
         required: true
         schema:
-          $ref: '#/definitions/entities.UserCreate'
+          $ref: '#/definitions/swagger.GetHistoryMatrix'
       produces:
       - application/json
       responses:
         "200":
-          description: Successfully loginned user, returning JWT and Session
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Login in mobile user
-      tags:
-      - public
-  /public/refresh:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Session ID
-        in: header
-        name: Session
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully authorized, returning JWT and new session_id
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Refresh tokens
-      tags:
-      - public
-  /user/delete:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Session ID
-        in: header
-        name: Session
-        required: true
-        type: string
-      - default: Bearer <Add access token here>
-        description: Insert your access token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully response
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: JWT is absent or invalid input
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: JWT is invalid or expired
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Delete user
-      tags:
-      - user
-  /user/me:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Session ID
-        in: header
-        name: Session
-        required: true
-        type: string
-      - default: Bearer <Add access token here>
-        description: Insert your access token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully response with user data
+          description: Found matrixes
           schema:
             items:
-              $ref: '#/definitions/entities.User'
+              $ref: '#/definitions/models.Matrix'
             type: array
         "400":
-          description: JWT is absent or invalid input
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: JWT is invalid or expired
+          description: Invalid input
           schema:
             additionalProperties:
               type: string
@@ -221,7 +121,7 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Get user data
+      summary: Get matrixes by time start, time end and matrix type (can be null)
       tags:
-      - user
+      - matrix
 swagger: "2.0"

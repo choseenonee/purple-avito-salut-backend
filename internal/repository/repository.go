@@ -16,3 +16,7 @@ type UsersSegments interface {
 type Users interface {
 	Create(ctx context.Context, user models.UserBase) (int, error)
 }
+
+type Matix interface {
+	Create(ctx context.Context)
+}

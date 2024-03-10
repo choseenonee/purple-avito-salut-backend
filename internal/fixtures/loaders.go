@@ -16,7 +16,7 @@ import (
 const (
 	Regions       = "../internal/fixtures/regions.json"
 	UsersSegments = "../internal/fixtures/users-segments.json"
-	Users   = "../internal/fixtures/users.json"
+	Users         = "../internal/fixtures/users.json"
 )
 
 func Loader(filepath ...string) error {
@@ -35,11 +35,6 @@ func Loader(filepath ...string) error {
 
 		switch path {
 		case Regions:
-			var rawRegions map[string]map[string]map[string][]string
-			if err := json.Unmarshal(bytes, &rawRegions); err != nil {
-				return err
-			}
-
 			regionRepo := repository.InitRegionsRepo(db)
 
 			var rawRegions map[string]map[string]map[string][]string
@@ -153,6 +148,10 @@ func loadUsersSegments(usersSegmentsRepo repository.UsersSegments, usersSegments
 			}
 			createdIDs = append(createdIDs, id)
 		}
+	}
+
+	return createdIDs, nil
+}
 
 func loadUsers(userRepo repository.Users, users []models.UserBase) ([]int, error) {
 	var createdIDs []int

@@ -18,7 +18,7 @@ const (
 	UsersSegments = "../internal/fixtures/users-segments.json"
 )
 
-func LoadRegions(filepath ...string) error {
+func Loader(filepath ...string) error {
 	var db *sqlx.DB
 
 	if len(filepath) > 0 {
@@ -32,16 +32,29 @@ func LoadRegions(filepath ...string) error {
 			return err
 		}
 
-		var rawRegions map[string]map[string]map[string][]string
-		if err := json.Unmarshal(bytes, &rawRegions); err != nil {
-			return err
-		}
-
 		switch path {
 		case Regions:
 			regionRepo := repository.InitRegionsRepo(db)
 
+			var rawRegions map[string]map[string]map[string][]string
+			if err := json.Unmarshal(bytes, &rawRegions); err != nil {
+				return err
+			}
+
 			createdIDs, err := loadRegions(regionRepo, rawRegions)
+			if err != nil {
+				return err
+			}
+			fmt.Println(createdIDs)
+		case UsersSegments:
+			usersSegmentsRepo := repository.InitSegmentsRepo(db)
+
+			var arrayUsersSegments []parsingUsersSegments
+			if err := json.Unmarshal(bytes, &arrayUsersSegments); err != nil {
+				return err
+			}
+
+			createdIDs, err := loadUsersSegments(usersSegmentsRepo, arrayUsersSegments)
 			if err != nil {
 				return err
 			}
@@ -106,42 +119,42 @@ type parsingUsersSegments struct {
 	SegmentIDs []int `json:"segment_id"`
 }
 
-func LoadUsersSegments(filepath ...string) error {
-	var db *sqlx.DB
-
-	if len(filepath) > 0 {
-		config.InitConfig()
-		db = database.GetDB()
-	}
-
-	for _, path := range filepath {
-		bytes, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		var arrayUsersSegments []parsingUsersSegments
-		if err := json.Unmarshal(bytes, &arrayUsersSegments); err != nil {
-			return err
-		}
-
-		switch path {
-		case UsersSegments:
-			usersSegmentsRepo := repository.InitSegmentsRepo(db)
-
-			createdIDs, err := loadUsersSegments(usersSegmentsRepo, arrayUsersSegments)
-			if err != nil {
-				return err
-			}
-			fmt.Println(createdIDs)
-		default:
-			return fmt.Errorf("error parsing path")
-		}
-
-	}
-
-	return nil
-}
+//func LoadUsersSegments(filepath ...string) error {
+//	var db *sqlx.DB
+//
+//	if len(filepath) > 0 {
+//		config.InitConfig()
+//		db = database.GetDB()
+//	}
+//
+//	for _, path := range filepath {
+//		bytes, err := os.ReadFile(path)
+//		if err != nil {
+//			return err
+//		}
+//
+//		var arrayUsersSegments []parsingUsersSegments
+//		if err := json.Unmarshal(bytes, &arrayUsersSegments); err != nil {
+//			return err
+//		}
+//
+//		switch path {
+//		case UsersSegments:
+//			usersSegmentsRepo := repository.InitSegmentsRepo(db)
+//
+//			createdIDs, err := loadUsersSegments(usersSegmentsRepo, arrayUsersSegments)
+//			if err != nil {
+//				return err
+//			}
+//			fmt.Println(createdIDs)
+//		default:
+//			return fmt.Errorf("error parsing path")
+//		}
+//
+//	}
+//
+//	return nil
+//}
 
 func loadUsersSegments(usersSegmentsRepo repository.UsersSegments, usersSegments []parsingUsersSegments) ([]int, error) {
 	var createdIDs []int

@@ -225,6 +225,7 @@ func (m matrixRepo) GetPriceTendency(ctx context.Context, data models.GetTendenc
 	//}
 	//
 	//return matrixes, nil
+}
 
 func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error) {
 	var difference models.MatrixDifference

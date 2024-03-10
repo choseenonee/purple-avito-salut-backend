@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"template/internal/delivery"
+	"template/internal/delivery/middleware"
 	"template/pkg/config"
 	"template/pkg/database"
 	"template/pkg/log"
@@ -29,10 +30,13 @@ func main() {
 	db := database.GetDB()
 	logger.Info("Database Initialized")
 
+	mdw := middleware.InitMiddleware(logger)
+
 	delivery.Start(
 		db,
 		logger,
 		tracer,
+		mdw,
 	)
 
 }

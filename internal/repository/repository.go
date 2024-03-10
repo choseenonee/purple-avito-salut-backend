@@ -24,5 +24,6 @@ type Microcategories interface {
 }
 
 type Matrix interface {
+	CreateMatrix(ctx context.Context, matrix models.MatrixBase) error
 	GetHistory(ctx context.Context, timeStart time.Time, timeEnd time.Time, isBaseline null.Bool) ([]models.Matrix, error)
 }

@@ -11,6 +11,12 @@ type GetHistoryMatrix struct {
 	IsBaseline bool      `json:"is_baseline,omitempty"`
 }
 
+type ResponseHistoryMatrix struct {
+	Name       string    `json:"name"`
+	TimeStamp  time.Time `json:"timestamp"`
+	ParentName string    `json:"parent_name,omitempty"`
+}
+
 type MatrixBase struct {
 	Name       string              `json:"name"`
 	IsBaseLine bool                `json:"is_baseline"`

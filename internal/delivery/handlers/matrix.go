@@ -21,6 +21,7 @@ func InitMatrixHandler(service service.Matrix, tracer trace.Tracer) MatrixHandle
 	}
 }
 
+
 // CreateMatrix @Summary Create matrix
 // @Tags matrix
 // @Accept  json
@@ -61,7 +62,7 @@ func (m MatrixHandler) CreateMatrix(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Param data body swagger.GetHistoryMatrix true "Get data"
-// @Success 200 {object} []models.Matrix "Found matrices"
+// @Success 200 {object} []swagger.ResponseHistoryMatrix "Found matrixes"
 // @Failure 400 {object} map[string]string "Invalid input"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /matrix/get_history [put]

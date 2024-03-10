@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"github.com/guregu/null"
 	"github.com/jmoiron/sqlx"
 	"strings"
 	"template/internal/models"
@@ -121,15 +120,14 @@ func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) 
 	return matrixName, nil
 }
 
-func (m matrixRepo) GetHistory(ctx context.Context, data models.GetHistoryMatrix) ([]models.Matrix, error) {
-	var matrixes []models.Matrix
+func (m matrixRepo) GetHistory(ctx context.Context, data models.GetHistoryMatrix) ([]models.ResponseHistoryMatrix, error) {
+	var matrixes []models.ResponseHistoryMatrix
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	query := psql.Select("name, microcategory_id, region_id, matrix_metadata.timestamp, matrix_metadata.parent_matrix_name").
+	query := psql.Select("DISTINCT name, matrix_metadata.timestamp, matrix_metadata.parent_matrix_name").
 		From("matrix").
 		Join("matrix_metadata ON matrix.name = matrix_metadata.matrix_name").
-		Where(sq.And{sq.GtOrEq{"matrix_metadata.timestamp": data.TimeStart}, sq.LtOrEq{"matrix_metadata.timestamp": data.TimeEnd}}).OrderBy(`
-			matrix_metadata.matrix_name ASC`)
+		Where(sq.And{sq.GtOrEq{"matrix_metadata.timestamp": data.TimeStart}, sq.LtOrEq{"matrix_metadata.timestamp": data.TimeEnd}})
 
 	if data.IsBaseline.Valid {
 		query = query.Where(sq.Eq{"matrix_metadata.is_baseline": data.IsBaseline})
@@ -138,55 +136,95 @@ func (m matrixRepo) GetHistory(ctx context.Context, data models.GetHistoryMatrix
 	// Собираем запрос
 	sqlQuery, args, err := query.ToSql()
 	if err != nil {
-		return []models.Matrix{}, err
+		return []models.ResponseHistoryMatrix{}, err
 	}
 
 	rows, err := m.db.QueryxContext(ctx, sqlQuery, args...)
 	if err != nil {
-		return []models.Matrix{}, err
+		return []models.ResponseHistoryMatrix{}, err
 	}
 
-	var matrix models.Matrix
+	var matrix models.ResponseHistoryMatrix
 
 	for rows.Next() {
-		var matrixName string
-		var matrixTimeStamp time.Time
-		var node models.MatrixNode
-		var parentMatrixName null.String
-		err = rows.Scan(&matrixName, &node.MicroCategoryID, &node.RegionID, &matrixTimeStamp, &parentMatrixName)
+		err = rows.Scan(&matrix.Name, &matrix.TimeStamp, &matrix.ParentName)
 		if err != nil {
-			return []models.Matrix{}, err
+			return []models.ResponseHistoryMatrix{}, err
 		}
 
-		switch matrix.Name {
-		case "":
-			matrix.Name = matrixName
-			matrix.TimeStamp = matrixTimeStamp
-			matrix.ParentName = parentMatrixName
-			matrix.Data = append(matrix.Data, node)
-		case matrixName:
-			matrix.Data = append(matrix.Data, node)
-		default:
-			matrixes = append(matrixes, matrix)
-			matrix.Name = matrixName
-			matrix.TimeStamp = matrixTimeStamp
-			matrix.ParentName = parentMatrixName
-			matrix.Data = nil
-			matrix.Data = append(matrix.Data, node)
-		}
-	}
-
-	if matrix.Name != "" {
 		matrixes = append(matrixes, matrix)
 	}
 
 	err = rows.Err()
 	if err != nil {
-		return []models.Matrix{}, nil
+		return []models.ResponseHistoryMatrix{}, nil
 	}
 
 	return matrixes, nil
 }
+
+func (m matrixRepo) GetPriceTendency(ctx context.Context, data models.GetTendencyNode) ([]models.ResponseTendencyNode, error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query := psql.Select("matrix_metadata.timestamp, microcategory_id, region_id, matrix_metadata.timestamp, matrix_metadata.parent_matrix_name").
+		From("matrix").
+		Join("matrix_metadata ON matrix.name = matrix_metadata.matrix_name").
+		Where(sq.And{sq.GtOrEq{"matrix_metadata.timestamp": data.TimeStart}, sq.LtOrEq{"matrix_metadata.timestamp": data.TimeEnd}}).OrderBy(`
+			matrix_metadata.matrix_name ASC`).Where("matrix_metadata.is_baseline = true").Where("microcategory_id = ")
+
+	sqlQuery, args, err := query.ToSql()
+	fmt.Println(sqlQuery)
+	fmt.Println(args)
+	fmt.Println(err)
+	return nil, err
+	//if err != nil {
+	//	return []models.Matrix{}, err
+	//}
+	//
+	//rows, err := m.db.QueryxContext(ctx, sqlQuery, args...)
+	//if err != nil {
+	//	return []models.Matrix{}, err
+	//}
+	//
+	//var matrix models.Matrix
+	//
+	//for rows.Next() {
+	//	var matrixName string
+	//	var matrixTimeStamp time.Time
+	//	var node models.MatrixNode
+	//	var parentMatrixName null.String
+	//	err = rows.Scan(&matrixName, &node.MicroCategoryID, &node.RegionID, &matrixTimeStamp, &parentMatrixName)
+	//	if err != nil {
+	//		return []models.Matrix{}, err
+	//	}
+	//
+	//	switch matrix.Name {
+	//	case "":
+	//		matrix.Name = matrixName
+	//		matrix.TimeStamp = matrixTimeStamp
+	//		matrix.ParentName = parentMatrixName
+	//		matrix.Data = append(matrix.Data, node)
+	//	case matrixName:
+	//		matrix.Data = append(matrix.Data, node)
+	//	default:
+	//		matrixes = append(matrixes, matrix)
+	//		matrix.Name = matrixName
+	//		matrix.TimeStamp = matrixTimeStamp
+	//		matrix.ParentName = parentMatrixName
+	//		matrix.Data = nil
+	//		matrix.Data = append(matrix.Data, node)
+	//	}
+	//}
+	//
+	//if matrix.Name != "" {
+	//	matrixes = append(matrixes, matrix)
+	//}
+	//
+	//err = rows.Err()
+	//if err != nil {
+	//	return []models.Matrix{}, nil
+	//}
+	//
+	//return matrixes, nil
 
 func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error) {
 	var difference models.MatrixDifference

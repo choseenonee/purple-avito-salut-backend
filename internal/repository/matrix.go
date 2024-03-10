@@ -211,7 +211,7 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 
 	deletedRows, err := m.db.QueryxContext(ctx, deletedAddedQuery, matrixName1, matrixName2)
 	if err != nil {
-		return models.MatrixDifference{}, utils.ErrNormalizer(utils.ErrorPair{Message: utils.QueryRrr, Err: err})
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
 	}
 	defer deletedRows.Close()
 
@@ -220,19 +220,19 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 
 		err := deletedRows.Scan(&deletedRow.MicroCategoryID, &deletedRow.RegionID, &deletedRow.Price)
 		if err != nil {
-			return models.MatrixDifference{}, utils.ErrNormalizer(utils.ErrorPair{Message: utils.ScanErr, Err: err})
+			return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
 		}
 
 		difference.Deleted = append(difference.Deleted, deletedRow)
 	}
 
 	if err := deletedRows.Err(); err != nil {
-		return models.MatrixDifference{}, utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: err})
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 
 	addedRows, err := m.db.QueryxContext(ctx, deletedAddedQuery, matrixName2, matrixName1)
 	if err != nil {
-		return models.MatrixDifference{}, utils.ErrNormalizer(utils.ErrorPair{Message: utils.QueryRrr, Err: err})
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
 	}
 	defer addedRows.Close()
 
@@ -241,19 +241,19 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 
 		err := addedRows.Scan(&addedRow.MicroCategoryID, &addedRow.RegionID, &addedRow.Price)
 		if err != nil {
-			return models.MatrixDifference{}, utils.ErrNormalizer(utils.ErrorPair{Message: utils.ScanErr, Err: err})
+			return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
 		}
 
 		difference.Added = append(difference.Added, addedRow)
 	}
 
 	if err := addedRows.Err(); err != nil {
-		return models.MatrixDifference{}, utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: err})
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 
 	updatedRows, err := m.db.QueryxContext(ctx, updatedQuery, matrixName1, matrixName2)
 	if err != nil {
-		return models.MatrixDifference{}, utils.ErrNormalizer(utils.ErrorPair{Message: utils.QueryRrr, Err: err})
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
 	}
 	defer updatedRows.Close()
 
@@ -263,7 +263,7 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 
 		err := updatedRows.Scan(&rowBefore.MicroCategoryID, &rowBefore.RegionID, &rowBefore.Price, &rowAfter.Price)
 		if err != nil {
-			return models.MatrixDifference{}, utils.ErrNormalizer(utils.ErrorPair{Message: utils.ScanErr, Err: err})
+			return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
 		}
 		rowAfter.MicroCategoryID = rowBefore.MicroCategoryID
 		rowAfter.RegionID = rowBefore.RegionID
@@ -274,7 +274,7 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 	}
 
 	if err := updatedRows.Err(); err != nil {
-		return models.MatrixDifference{}, utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: err})
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 
 	return difference, nil

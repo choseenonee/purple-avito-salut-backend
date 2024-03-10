@@ -117,14 +117,21 @@ func TestMatrixRepo_GetPriceTendency(t *testing.T) {
 
 	repo := InitMatrixRepo(db)
 
-	today := time.Now()
-	yesterday := today.AddDate(0, 0, -1)
+	// from postgres time to go time.Time
+	timestampStr := "2024-03-10 19:52:37.053174"
+	layout := "2006-01-02 15:04:05.000000"
+	timestamp, err := time.Parse(layout, timestampStr)
+	if err != nil {
+		fmt.Println("Error parsing timestamp:", err)
+		return
+	}
+
 	tomorrow := time.Now().Add(time.Hour * 24)
 
 	data := models.GetTendencyNode{
-		MicrocategoryID: 1,
-		RegionID:        1,
-		TimeStart:       yesterday,
+		MicrocategoryID: 2,
+		RegionID:        2,
+		TimeStart:       timestamp,
 		TimeEnd:         tomorrow,
 	}
 

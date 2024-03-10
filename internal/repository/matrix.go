@@ -29,16 +29,25 @@ func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) 
 
 	timestamp := time.Now()
 	matrixName := fmt.Sprintf("%s_%d", matrix.Name, timestamp.Unix())
-
-	var parentNameExists = false
-	parentMatrixExistsQuery := `SELECT 1 FROM matrix WHERE name = $1;`
-	rows, err := tx.QueryContext(ctx, parentMatrixExistsQuery, matrix.ParentName)
-	for rows.Next() {
-		parentNameExists = true
-	}
-
-	if !parentNameExists {
-		return "", customerr.ParentMatrixDontExist
+	if matrix.ParentName.Valid {
+		var parentNameExists = false
+		parentMatrixExistsQuery := `SELECT 1 FROM matrix WHERE name = $1;`
+		rows, err := tx.QueryContext(ctx, parentMatrixExistsQuery, matrix.ParentName)
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				return "", customerr.ErrNormalizer(
+					customerr.ErrorPair{Message: customerr.ExecErr, Err: err},
+					customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
+				)
+			}
+			return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
+		}
+		for rows.Next() {
+			parentNameExists = true
+		}
+		if !parentNameExists {
+			return "", customerr.ParentMatrixDontExist
+		}
 	}
 
 	valueString := make([]string, 0, len(matrix.Data))
@@ -165,66 +174,68 @@ func (m matrixRepo) GetHistory(ctx context.Context, data models.GetHistoryMatrix
 
 func (m matrixRepo) GetPriceTendency(ctx context.Context, data models.GetTendencyNode) ([]models.ResponseTendencyNode, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	query := psql.Select("matrix_metadata.timestamp, microcategory_id, region_id, matrix_metadata.timestamp, matrix_metadata.parent_matrix_name").
+	query := psql.Select("DISTINCT matrix_metadata.timestamp, price").
 		From("matrix").
 		Join("matrix_metadata ON matrix.name = matrix_metadata.matrix_name").
-		Where(sq.And{sq.GtOrEq{"matrix_metadata.timestamp": data.TimeStart}, sq.LtOrEq{"matrix_metadata.timestamp": data.TimeEnd}}).OrderBy(`
-			matrix_metadata.matrix_name ASC`).Where("matrix_metadata.is_baseline = true").Where("microcategory_id = ")
+		Where(sq.And{sq.GtOrEq{"matrix_metadata.timestamp": data.TimeStart},
+			sq.LtOrEq{"matrix_metadata.timestamp": data.TimeEnd}, sq.Eq{"microcategory_id": data.MicrocategoryID},
+			sq.Eq{"region_id": data.RegionID}, sq.Eq{"matrix_metadata.is_baseline": true}})
 
 	sqlQuery, args, err := query.ToSql()
-	fmt.Println(sqlQuery)
-	fmt.Println(args)
-	fmt.Println(err)
-	return nil, err
-	//if err != nil {
-	//	return []models.Matrix{}, err
-	//}
-	//
-	//rows, err := m.db.QueryxContext(ctx, sqlQuery, args...)
-	//if err != nil {
-	//	return []models.Matrix{}, err
-	//}
-	//
-	//var matrix models.Matrix
-	//
-	//for rows.Next() {
-	//	var matrixName string
-	//	var matrixTimeStamp time.Time
-	//	var node models.MatrixNode
-	//	var parentMatrixName null.String
-	//	err = rows.Scan(&matrixName, &node.MicroCategoryID, &node.RegionID, &matrixTimeStamp, &parentMatrixName)
-	//	if err != nil {
-	//		return []models.Matrix{}, err
-	//	}
-	//
-	//	switch matrix.Name {
-	//	case "":
-	//		matrix.Name = matrixName
-	//		matrix.TimeStamp = matrixTimeStamp
-	//		matrix.ParentName = parentMatrixName
-	//		matrix.Data = append(matrix.Data, node)
-	//	case matrixName:
-	//		matrix.Data = append(matrix.Data, node)
-	//	default:
-	//		matrixes = append(matrixes, matrix)
-	//		matrix.Name = matrixName
-	//		matrix.TimeStamp = matrixTimeStamp
-	//		matrix.ParentName = parentMatrixName
-	//		matrix.Data = nil
-	//		matrix.Data = append(matrix.Data, node)
-	//	}
-	//}
-	//
-	//if matrix.Name != "" {
-	//	matrixes = append(matrixes, matrix)
-	//}
-	//
-	//err = rows.Err()
-	//if err != nil {
-	//	return []models.Matrix{}, nil
-	//}
-	//
-	//return matrixes, nil
+	if err != nil {
+		return []models.ResponseTendencyNode{}, err
+	}
+
+	rows, err := m.db.QueryxContext(ctx, sqlQuery, args...)
+	if err != nil {
+		return []models.ResponseTendencyNode{}, err
+	}
+
+	var responses []models.ResponseTendencyNode
+
+	for rows.Next() {
+		var response models.ResponseTendencyNode
+		err = rows.Scan(&response.TimeStamp, &response.Price)
+		if err != nil {
+			return []models.ResponseTendencyNode{}, err
+		}
+
+		responses = append(responses, response)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return []models.ResponseTendencyNode{}, nil
+	}
+
+	oneBeforeTimeStartQuery := `SELECT DISTINCT matrix_metadata.timestamp, price 
+								FROM matrix 
+    							JOIN matrix_metadata ON matrix.name = matrix_metadata.matrix_name 
+								WHERE matrix_metadata.timestamp <= $1 AND matrix_metadata.is_baseline = true 
+								  AND microcategory_id = $2 AND region_id = $3
+								ORDER BY matrix_metadata.timestamp DESC`
+
+	rows, err = m.db.QueryxContext(ctx, oneBeforeTimeStartQuery, data.TimeStart, data.MicrocategoryID, data.RegionID)
+	if err != nil {
+		return []models.ResponseTendencyNode{}, err
+	}
+
+	for rows.Next() {
+		var response models.ResponseTendencyNode
+		err = rows.Scan(&response.TimeStamp, &response.Price)
+		if err != nil {
+			return []models.ResponseTendencyNode{}, err
+		}
+
+		responses = append(responses, response)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return []models.ResponseTendencyNode{}, nil
+	}
+
+	return responses, nil
 }
 
 func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error) {

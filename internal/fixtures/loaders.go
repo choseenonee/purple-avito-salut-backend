@@ -14,11 +14,12 @@ import (
 )
 
 const (
-	Regions = "../internal/fixtures/regions.json"
+	Regions       = "../internal/fixtures/regions.json"
+	UsersSegments = "../internal/fixtures/users-segments.json"
 	Users   = "../internal/fixtures/users.json"
 )
 
-func LoadRegions(filepath ...string) error {
+func Loader(filepath ...string) error {
 	var db *sqlx.DB
 
 	if len(filepath) > 0 {
@@ -41,12 +42,29 @@ func LoadRegions(filepath ...string) error {
 
 			regionRepo := repository.InitRegionsRepo(db)
 
+			var rawRegions map[string]map[string]map[string][]string
+			if err := json.Unmarshal(bytes, &rawRegions); err != nil {
+				return err
+			}
+
 			_, err := loadRegions(regionRepo, rawRegions)
 			if err != nil {
 				return err
 			}
 			//fmt.Println(createdIDs)
+		case UsersSegments:
+			usersSegmentsRepo := repository.InitSegmentsRepo(db)
 
+			var arrayUsersSegments []parsingUsersSegments
+			if err := json.Unmarshal(bytes, &arrayUsersSegments); err != nil {
+				return err
+			}
+
+			_, err := loadUsersSegments(usersSegmentsRepo, arrayUsersSegments)
+			if err != nil {
+				return err
+			}
+			//fmt.Println(createdIDs)
 		case Users:
 			userRepo := repository.InitUserRepo(db)
 
@@ -60,9 +78,8 @@ func LoadRegions(filepath ...string) error {
 				return err
 			}
 			//fmt.Println(createdIDs)
-
 		default:
-			return fmt.Errorf("иди нахуй")
+			return fmt.Errorf("error parsing path")
 		}
 
 	}
@@ -115,6 +132,27 @@ func loadRegions(regionRepo repository.Regions, regions map[string]map[string]ma
 
 	return createdIDs, nil
 }
+
+type parsingUsersSegments struct {
+	UserID     int   `json:"user_id"`
+	SegmentIDs []int `json:"segment_id"`
+}
+
+func loadUsersSegments(usersSegmentsRepo repository.UsersSegments, usersSegments []parsingUsersSegments) ([]int, error) {
+	var createdIDs []int
+
+	for _, userSegmentNode := range usersSegments {
+		for _, userSegmentRaw := range userSegmentNode.SegmentIDs {
+			userSegment := models.UserSegmentBase{
+				UserID:    userSegmentNode.UserID,
+				SegmentID: userSegmentRaw,
+			}
+			id, err := usersSegmentsRepo.Create(context.Background(), userSegment)
+			if err != nil {
+				return []int{}, err
+			}
+			createdIDs = append(createdIDs, id)
+		}
 
 func loadUsers(userRepo repository.Users, users []models.UserBase) ([]int, error) {
 	var createdIDs []int

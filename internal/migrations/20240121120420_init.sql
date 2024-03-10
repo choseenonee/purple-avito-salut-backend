@@ -28,10 +28,10 @@ CREATE TABLE IF NOT EXISTS users (
     region_id INT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS users_discounts (
+CREATE TABLE IF NOT EXISTS users_segments (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
-    discount SMALLINT NOT NULL
+    segment_id SMALLINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS interests (
@@ -54,7 +54,7 @@ ALTER TABLE relationships_microcategories
     ADD CONSTRAINT fk_child
         FOREIGN KEY (child_id) REFERENCES regions(id);
 
-ALTER TABLE users_discounts
+ALTER TABLE users_segments
     ADD CONSTRAINT fk_user
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 
@@ -68,5 +68,5 @@ ALTER TABLE interests
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS regions, relationships_regions, microcategories, relationships_microcategories, users, users_discounts, interests   CASCADE
+DROP TABLE IF EXISTS regions, relationships_regions, microcategories, relationships_microcategories, users, users_segments, interests   CASCADE
 -- +goose StatementEnd

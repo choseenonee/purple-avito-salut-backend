@@ -3,7 +3,14 @@ package main
 import "template/internal/fixtures"
 
 func main() {
-	err := fixtures.LoadRegions(fixtures.Users)
+	var err error
+
+	//err = fixtures.LoadRegions(fixtures.Regions)
+	//if err != nil {
+	//	panic(err)
+	//}
+
+	err = fixtures.Loader(fixtures.UsersSegments)
 	if err != nil {
 		panic(err)
 	}

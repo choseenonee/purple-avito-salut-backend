@@ -225,4 +225,95 @@ func (m matrixRepo) GetPriceTendency(ctx context.Context, data models.GetTendenc
 	//}
 	//
 	//return matrixes, nil
+
+func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error) {
+	var difference models.MatrixDifference
+
+	deletedAddedQuery := `SELECT matrix.microcategory_id, matrix.region_id, matrix.price
+						  FROM matrix
+						  INNER JOIN (
+						  	SELECT microcategory_id, region_id
+						  	FROM matrix
+						  	WHERE name=$1
+						  	EXCEPT
+						  	SELECT microcategory_id, region_id
+						  	FROM matrix
+						  	WHERE name=$2
+						  ) AS subquery ON matrix.microcategory_id = subquery.microcategory_id AND matrix.region_id = subquery.region_id
+						  WHERE matrix.name = $1;`
+
+	updatedQuery := `SELECT matrix.microcategory_id, matrix.region_id, matrix.price, m.price
+					 FROM matrix
+					 JOIN matrix AS m on m.microcategory_id = matrix.microcategory_id AND m.region_id = matrix.region_id
+					 WHERE matrix.name=$1 AND m.name=$2 AND matrix.price <> m.price;`
+
+	deletedRows, err := m.db.QueryxContext(ctx, deletedAddedQuery, matrixName1, matrixName2)
+	if err != nil {
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+	}
+	defer deletedRows.Close()
+
+	for deletedRows.Next() {
+		var deletedRow models.MatrixNode
+
+		err := deletedRows.Scan(&deletedRow.MicroCategoryID, &deletedRow.RegionID, &deletedRow.Price)
+		if err != nil {
+			return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+		}
+
+		difference.Deleted = append(difference.Deleted, deletedRow)
+	}
+
+	if err := deletedRows.Err(); err != nil {
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+	}
+
+	addedRows, err := m.db.QueryxContext(ctx, deletedAddedQuery, matrixName2, matrixName1)
+	if err != nil {
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+	}
+	defer addedRows.Close()
+
+	for addedRows.Next() {
+		var addedRow models.MatrixNode
+
+		err := addedRows.Scan(&addedRow.MicroCategoryID, &addedRow.RegionID, &addedRow.Price)
+		if err != nil {
+			return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+		}
+
+		difference.Added = append(difference.Added, addedRow)
+	}
+
+	if err := addedRows.Err(); err != nil {
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+	}
+
+	updatedRows, err := m.db.QueryxContext(ctx, updatedQuery, matrixName1, matrixName2)
+	if err != nil {
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+	}
+	defer updatedRows.Close()
+
+	for updatedRows.Next() {
+		var rowBefore models.MatrixNode
+		var rowAfter models.MatrixNode
+
+		err := updatedRows.Scan(&rowBefore.MicroCategoryID, &rowBefore.RegionID, &rowBefore.Price, &rowAfter.Price)
+		if err != nil {
+			return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+		}
+		rowAfter.MicroCategoryID = rowBefore.MicroCategoryID
+		rowAfter.RegionID = rowBefore.RegionID
+
+		dif := [2]models.MatrixNode{rowBefore, rowAfter}
+
+		difference.Updated = append(difference.Updated, dif)
+	}
+
+	if err := updatedRows.Err(); err != nil {
+		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+	}
+
+	return difference, nil
 }

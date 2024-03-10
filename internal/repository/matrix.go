@@ -361,3 +361,33 @@ func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, page int) 
 
 	return matrix, nil
 }
+
+func (m matrixRepo) GetMatricesByDuration(ctx context.Context, timeStart, timeEnd time.Time) ([]models.Matrix, error) {
+	var matrices []models.Matrix
+
+	selectQuery := `SELECT matrix_name, timestamp, is_baseline, parent_matrix_name FROM matrix_metadata
+					WHERE timestamp BETWEEN $1 AND $2;`
+
+	rows, err := m.db.QueryxContext(ctx, selectQuery, timeStart, timeEnd)
+	if err != nil {
+		return []models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var matrix models.Matrix
+
+		err := rows.Scan(&matrix.Name, &matrix.TimeStamp, &matrix.IsBaseLine, &matrix.ParentName)
+		if err != nil {
+			return []models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+		}
+
+		matrices = append(matrices, matrix)
+	}
+
+	if err := rows.Err(); err != nil {
+		return []models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+	}
+
+	return matrices, nil
+}

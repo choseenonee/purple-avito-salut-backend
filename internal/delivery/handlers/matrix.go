@@ -8,6 +8,7 @@ import (
 	"template/internal/models"
 	_ "template/internal/models/swagger"
 	"template/internal/service"
+	"time"
 )
 
 type MatrixHandler struct {
@@ -191,6 +192,54 @@ func (m MatrixHandler) GetMatrix(c *gin.Context) {
 
 	span.AddEvent(CallToService)
 	matrices, err := m.service.GetMatrix(ctx, matrixName, page)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, matrices)
+}
+
+// GetMatricesByDuration @Summary Get matrices by duration
+// @Description Retrieves matrices that fall within the specified time duration.
+// @Tags matrix
+// @Accept  json
+// @Produce  json
+// @Param time_from query string true "Start time of the duration (RFC3339 format)"
+// @Param time_to query string true "End time of the duration (RFC3339 format)"
+// @Success 200 {object} []models.Matrix "Successfully retrieved matrices within the specified duration"
+// @Failure 400 {object} map[string]string "Invalid input, missing or incorrect parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /matrix/get_matrices_by_duration [get]
+func (m MatrixHandler) GetMatricesByDuration(c *gin.Context) {
+	ctx, span := m.tracer.Start(c.Request.Context(), "GetMatricesByDuration")
+	defer span.End()
+
+	timeFromStr, ok := c.GetQuery("time_from")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "timeFrom not provided"})
+		return
+	}
+	timeToStr, ok := c.GetQuery("time_to")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "timeTo not provided"})
+		return
+	}
+
+	timeFrom, err := time.Parse(time.RFC3339, timeFromStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid timeFrom format"})
+		return
+	}
+
+	timeTo, err := time.Parse(time.RFC3339, timeToStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid timeTo format"})
+		return
+	}
+
+	span.AddEvent("CallToService")
+	matrices, err := m.service.GetMatricesByDuration(ctx, timeFrom, timeTo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

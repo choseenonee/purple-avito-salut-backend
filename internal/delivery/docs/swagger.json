@@ -166,6 +166,65 @@
                 }
             }
         },
+        "/matrix/get_matrices_by_duration": {
+            "get": {
+                "description": "Retrieves matrices that fall within the specified time duration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matrix"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start time of the duration (RFC3339 format)",
+                        "name": "time_from",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "End time of the duration (RFC3339 format)",
+                        "name": "time_to",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved matrices within the specified duration",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Matrix"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input, missing or incorrect parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/matrix/get_matrix": {
             "get": {
                 "description": "Retrieves a specific page of the matrix identified by its name.",
@@ -227,6 +286,46 @@
         }
     },
     "definitions": {
+        "models.GetTendencyNode": {
+            "type": "object",
+            "properties": {
+                "microcategory_id": {
+                    "type": "integer"
+                },
+                "region_id": {
+                    "type": "integer"
+                },
+                "time_end": {
+                    "type": "string"
+                },
+                "time_start": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Matrix": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MatrixNode"
+                    }
+                },
+                "is_baseline": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_name": {
+                    "$ref": "#/definitions/null.String"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
         "models.MatrixDifference": {
             "type": "object",
             "properties": {
@@ -264,6 +363,29 @@
                 },
                 "region_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.ResponseTendencyNode": {
+            "type": "object",
+            "properties": {
+                "price": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "null.String": {
+            "type": "object",
+            "properties": {
+                "string": {
+                    "type": "string"
+                },
+                "valid": {
+                    "description": "Valid is true if String is not NULL",
+                    "type": "boolean"
                 }
             }
         },

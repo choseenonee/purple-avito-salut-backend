@@ -1,4 +1,30 @@
 definitions:
+  models.GetTendencyNode:
+    properties:
+      microcategory_id:
+        type: integer
+      region_id:
+        type: integer
+      time_end:
+        type: string
+      time_start:
+        type: string
+    type: object
+  models.Matrix:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+      is_baseline:
+        type: boolean
+      name:
+        type: string
+      parent_name:
+        $ref: '#/definitions/null.String'
+      timestamp:
+        type: string
+    type: object
   models.MatrixDifference:
     properties:
       added:
@@ -24,6 +50,21 @@ definitions:
         type: integer
       region_id:
         type: integer
+    type: object
+  models.ResponseTendencyNode:
+    properties:
+      price:
+        type: integer
+      timestamp:
+        type: string
+    type: object
+  null.String:
+    properties:
+      string:
+        type: string
+      valid:
+        description: Valid is true if String is not NULL
+        type: boolean
     type: object
   swagger.GetHistoryMatrix:
     properties:
@@ -153,6 +194,45 @@ paths:
             type: array
         "400":
           description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - matrix
+  /matrix/get_matrices_by_duration:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves matrices that fall within the specified time duration.
+      parameters:
+      - description: Start time of the duration (RFC3339 format)
+        in: query
+        name: time_from
+        required: true
+        type: string
+      - description: End time of the duration (RFC3339 format)
+        in: query
+        name: time_to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved matrices within the specified duration
+          schema:
+            items:
+              $ref: '#/definitions/models.Matrix'
+            type: array
+        "400":
+          description: Invalid input, missing or incorrect parameters
           schema:
             additionalProperties:
               type: string

@@ -15,6 +15,7 @@ import (
 
 const (
 	Regions = "../internal/fixtures/regions.json"
+	Users   = "../internal/fixtures/users.json"
 )
 
 func LoadRegions(filepath ...string) error {
@@ -31,20 +32,35 @@ func LoadRegions(filepath ...string) error {
 			return err
 		}
 
-		var rawRegions map[string]map[string]map[string][]string
-		if err := json.Unmarshal(bytes, &rawRegions); err != nil {
-			return err
-		}
-
 		switch path {
 		case Regions:
+			var rawRegions map[string]map[string]map[string][]string
+			if err := json.Unmarshal(bytes, &rawRegions); err != nil {
+				return err
+			}
+
 			regionRepo := repository.InitRegionsRepo(db)
 
-			createdIDs, err := loadRegions(regionRepo, rawRegions)
+			_, err := loadRegions(regionRepo, rawRegions)
 			if err != nil {
 				return err
 			}
-			fmt.Println(createdIDs)
+			//fmt.Println(createdIDs)
+
+		case Users:
+			userRepo := repository.InitUserRepo(db)
+
+			var rawUsers []models.UserBase
+			if err := json.Unmarshal(bytes, &rawUsers); err != nil {
+				return err
+			}
+
+			_, err := loadUsers(userRepo, rawUsers)
+			if err != nil {
+				return err
+			}
+			//fmt.Println(createdIDs)
+
 		default:
 			return fmt.Errorf("иди нахуй")
 		}
@@ -95,6 +111,21 @@ func loadRegions(regionRepo repository.Regions, regions map[string]map[string]ma
 		}
 
 		createdIDs = append(createdIDs, id1)
+	}
+
+	return createdIDs, nil
+}
+
+func loadUsers(userRepo repository.Users, users []models.UserBase) ([]int, error) {
+	var createdIDs []int
+
+	for _, user := range users {
+		id, err := userRepo.Create(context.Background(), user)
+		if err != nil {
+			return []int{}, err
+		}
+
+		createdIDs = append(createdIDs, id)
 	}
 
 	return createdIDs, nil

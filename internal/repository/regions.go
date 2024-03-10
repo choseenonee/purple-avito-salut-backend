@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"template/internal/models"
-	"template/pkg/utils"
+	"template/pkg/customerr"
 )
 
 type regionsRepo struct {
@@ -21,7 +21,7 @@ func (r regionsRepo) Create(ctx context.Context, region models.RegionBase) (int,
 
 	tx, err := r.db.Beginx()
 	if err != nil {
-		return 0, utils.ErrNormalizer(utils.ErrorPair{Message: utils.TransactionErr, Err: err})
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.TransactionErr, Err: err})
 	}
 
 	createRegionQuery := `INSERT INTO regions (name) VALUES ($1) RETURNING id;`
@@ -29,13 +29,13 @@ func (r regionsRepo) Create(ctx context.Context, region models.RegionBase) (int,
 	err = tx.QueryRowxContext(ctx, createRegionQuery, region.Name).Scan(&createdRegionID)
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return 0, utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.ScanErr, Err: err},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return 0, customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.ScanErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
 
-		return 0, utils.ErrNormalizer(utils.ErrorPair{Message: utils.ScanErr, Err: err})
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
 	}
 
 	createRelationshipQuery := `INSERT INTO relationships_regions (parent_id, child_id) VALUES ($1, $2);`
@@ -43,37 +43,37 @@ func (r regionsRepo) Create(ctx context.Context, region models.RegionBase) (int,
 	res, err := tx.ExecContext(ctx, createRelationshipQuery, region.ParentID, createdRegionID)
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return 0, utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.ExecErr, Err: err},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return 0, customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.ExecErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
-		return 0, utils.ErrNormalizer(utils.ErrorPair{Message: utils.ExecErr, Err: err})
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
 	}
 
 	count, err := res.RowsAffected()
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return 0, utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.RowsErr, Err: err},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return 0, customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.RowsErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
-		return 0, utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: err})
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 
 	if count != 1 {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return 0, utils.ErrNormalizer(
-				utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)},
-				utils.ErrorPair{Message: utils.RollbackErr, Err: rbErr},
+			return 0, customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
 			)
 		}
-		return 0, utils.ErrNormalizer(utils.ErrorPair{Message: utils.RowsErr, Err: fmt.Errorf(utils.CountErr, count)})
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)})
 	}
 
 	if err = tx.Commit(); err != nil {
-		return 0, utils.ErrNormalizer(utils.ErrorPair{Message: utils.CommitErr, Err: err})
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.CommitErr, Err: err})
 	}
 
 	return createdRegionID, nil

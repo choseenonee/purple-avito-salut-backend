@@ -5,6 +5,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"net/http"
 	"template/internal/models"
+	_ "template/internal/models/swagger"
 	"template/internal/service"
 )
 
@@ -24,8 +25,8 @@ func InitMatrixHandler(service service.Matrix, tracer trace.Tracer) MatrixHandle
 // @Tags matrix
 // @Accept  json
 // @Produce  json
-// @Param data body models.MatrixBase true "Matrix create"
-// @Success 200 {object} int "Successfully created matrix"
+// @Param data body swagger.MatrixBase true "Matrix create"
+// @Success 200 {object} string "Successfully created matrix"
 // @Failure 400 {object} map[string]string "Invalid input"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /matrix/create [post]
@@ -52,15 +53,15 @@ func (m MatrixHandler) CreateMatrix(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"matrix_name": name})
+	c.JSON(http.StatusOK, name)
 }
 
 // @Summary Get matrixes by time start, time end and matrix type (can be null)
 // @Tags matrix
 // @Accept  json
 // @Produce  json
-// @Param data body []swagger.GetHistoryMatrix true "Get data"
-// @Success 200 {object} map[string]string "Found matrixes"
+// @Param data body swagger.GetHistoryMatrix true "Get data"
+// @Success 200 {object} []models.Matrix "Found matrixes"
 // @Failure 400 {object} map[string]string "Invalid input"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /matrix/get_history [put]

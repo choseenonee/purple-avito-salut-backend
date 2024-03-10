@@ -22,3 +22,7 @@ func (m matrixService) Create(ctx context.Context, matrix models.MatrixBase) (st
 func (m matrixService) GetHistory(ctx context.Context, data models.GetHistoryMatrix) ([]models.Matrix, error) {
 	return m.matrixRepo.GetHistory(ctx, data)
 }
+
+func (m matrixService) GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error) {
+	return m.matrixRepo.GetDifference(ctx, matrixName1, matrixName2)
+}

@@ -21,7 +21,7 @@ func InitMatrixHandler(service service.Matrix, tracer trace.Tracer) MatrixHandle
 	}
 }
 
-// @Summary Create matrix
+// CreateMatrix @Summary Create matrix
 // @Tags matrix
 // @Accept  json
 // @Produce  json
@@ -56,30 +56,68 @@ func (m MatrixHandler) CreateMatrix(c *gin.Context) {
 	c.JSON(http.StatusOK, name)
 }
 
-// @Summary Get matrixes by time start, time end and matrix type (can be null)
+// GetHistory @Summary Get matrices by time start, time end and matrix type (can be null)
 // @Tags matrix
 // @Accept  json
 // @Produce  json
 // @Param data body swagger.GetHistoryMatrix true "Get data"
-// @Success 200 {object} []models.Matrix "Found matrixes"
+// @Success 200 {object} []models.Matrix "Found matrices"
 // @Failure 400 {object} map[string]string "Invalid input"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /matrix/get_history [put]
 func (m MatrixHandler) GetHistory(c *gin.Context) {
 	var getHistoryMatrix models.GetHistoryMatrix
 
+	ctx, span := m.tracer.Start(c.Request.Context(), GetHistory)
+	defer span.End()
+
 	if err := c.ShouldBindJSON(&getHistoryMatrix); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx := c.Request.Context()
-
-	matrixes, err := m.service.GetHistory(ctx, getHistoryMatrix)
+	span.AddEvent(CallToService)
+	matrices, err := m.service.GetHistory(ctx, getHistoryMatrix)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, matrixes)
+	c.JSON(http.StatusOK, matrices)
+}
+
+// GetDifference @Summary Get difference between two matrices
+// @Description Retrieves the differences between two matrices identified by their names.
+// @Tags matrix
+// @Accept  json
+// @Produce  json
+// @Param from_name query string true "Name of the first matrix"
+// @Param to_name query string true "Name of the second matrix"
+// @Success 200 {object} []models.MatrixDifference "Found matrices differences"
+// @Failure 400 {object} map[string]string "Invalid input, missing matrix names"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /matrix/get_difference [get]
+func (m MatrixHandler) GetDifference(c *gin.Context) {
+	ctx, span := m.tracer.Start(c.Request.Context(), GetHistory)
+	defer span.End()
+
+	matrixName1, ok := c.GetQuery("from_name")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "matrixName1 not provided"})
+		return
+	}
+	matrixName2, ok := c.GetQuery("to_name")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "matrixName2 not provided"})
+		return
+	}
+
+	span.AddEvent(CallToService)
+	matrices, err := m.service.GetDifference(ctx, matrixName1, matrixName2)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, matrices)
 }

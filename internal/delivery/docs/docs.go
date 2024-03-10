@@ -26,7 +26,6 @@ const docTemplate = `{
                 "tags": [
                     "matrix"
                 ],
-                "summary": "Create matrix",
                 "parameters": [
                     {
                         "description": "Matrix create",
@@ -66,6 +65,65 @@ const docTemplate = `{
                 }
             }
         },
+        "/matrix/get_difference": {
+            "get": {
+                "description": "Retrieves the differences between two matrices identified by their names.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matrix"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of the first matrix",
+                        "name": "from_name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of the second matrix",
+                        "name": "to_name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found matrices differences",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.MatrixDifference"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input, missing matrix names",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/matrix/get_history": {
             "put": {
                 "consumes": [
@@ -77,7 +135,6 @@ const docTemplate = `{
                 "tags": [
                     "matrix"
                 ],
-                "summary": "Get matrixes by time start, time end and matrix type (can be null)",
                 "parameters": [
                     {
                         "description": "Get data",
@@ -91,7 +148,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Found matrixes",
+                        "description": "Found matrices",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -142,6 +199,32 @@ const docTemplate = `{
                 },
                 "timestamp": {
                     "type": "string"
+                }
+            }
+        },
+        "models.MatrixDifference": {
+            "type": "object",
+            "properties": {
+                "added": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MatrixNode"
+                    }
+                },
+                "deleted": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MatrixNode"
+                    }
+                },
+                "updated": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/models.MatrixNode"
+                        }
+                    }
                 }
             }
         },

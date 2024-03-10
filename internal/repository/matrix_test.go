@@ -36,7 +36,7 @@ func TestMatrixRepoGetHistory(t *testing.T) {
 		IsBaseline: null.NewBool(false, false),
 	}
 
-	repo := InitMatrixRepo(db)
+	repo := InitMatrixRepo(db, 10)
 	res, err := repo.GetHistory(context.Background(), data)
 	fmt.Println(res)
 	fmt.Println(err)
@@ -45,7 +45,7 @@ func TestMatrixRepoGetHistory(t *testing.T) {
 func TestMatrixRepoCreateGetDifference(t *testing.T) {
 	db := initDB()
 
-	repo := InitMatrixRepo(db)
+	repo := InitMatrixRepo(db, 10)
 
 	data1 := models.MatrixBase{
 		Name:       "File_1",

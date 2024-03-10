@@ -22,6 +22,7 @@ const (
 	RedisPort         = "REDIS_PORT"
 	JaegerHost        = "JAEGER_HOST"
 	JaegerPort        = "JAEGER_PORT"
+	MaxOnPage         = "MAX_ON_PAGE"
 )
 
 func InitConfig() {

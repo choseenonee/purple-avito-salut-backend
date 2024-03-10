@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/trace"
 	"net/http"
+	"strconv"
 	"template/internal/models"
 	_ "template/internal/models/swagger"
 	"template/internal/service"
@@ -114,6 +115,47 @@ func (m MatrixHandler) GetDifference(c *gin.Context) {
 
 	span.AddEvent(CallToService)
 	matrices, err := m.service.GetDifference(ctx, matrixName1, matrixName2)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, matrices)
+}
+
+// GetMatrix @Summary Get matrix by name and page
+// @Description Retrieves a specific page of the matrix identified by its name.
+// @Tags matrix
+// @Accept  json
+// @Produce  json
+// @Param matrix_name query string true "Name of the matrix to retrieve"
+// @Param page query int true "Page number of the matrix to retrieve"
+// @Success 200 {object} []models.Matrix "Successfully retrieved the specified page of the matrix"
+// @Failure 400 {object} map[string]string "Invalid input, missing or incorrect parameters"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /matrix/get_matrix [get]
+func (m MatrixHandler) GetMatrix(c *gin.Context) {
+	ctx, span := m.tracer.Start(c.Request.Context(), GetHistory)
+	defer span.End()
+
+	matrixName, ok := c.GetQuery("matrix_name")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "matrixName not provided"})
+		return
+	}
+	pageStr, ok := c.GetQuery("page")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "pageStr not provided"})
+		return
+	}
+	page, err := strconv.Atoi(pageStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "page can't interpret as int"})
+		return
+	}
+
+	span.AddEvent(CallToService)
+	matrices, err := m.service.GetMatrix(ctx, matrixName, page)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -179,4 +179,43 @@ paths:
             type: object
       tags:
       - matrix
+  /matrix/get_matrix:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a specific page of the matrix identified by its name.
+      parameters:
+      - description: Name of the matrix to retrieve
+        in: query
+        name: matrix_name
+        required: true
+        type: string
+      - description: Page number of the matrix to retrieve
+        in: query
+        name: page
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved the specified page of the matrix
+          schema:
+            items:
+              $ref: '#/definitions/models.Matrix'
+            type: array
+        "400":
+          description: Invalid input, missing or incorrect parameters
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - matrix
 swagger: "2.0"

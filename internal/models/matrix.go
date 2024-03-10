@@ -25,6 +25,11 @@ type MatrixDifference struct {
 	Deleted []MatrixNode    `json:"deleted"`
 }
 
+type GetDifferenceByMatricesNames struct {
+	Name1 string `json:"from_name"`
+	Name2 string `json:"to_name"`
+}
+
 // на бэке вставляем таймстамп
 type Matrix struct {
 	MatrixBase

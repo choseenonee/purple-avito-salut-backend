@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"go.opentelemetry.io/otel/trace"
-	handlers "template/internal/delivery/handelrs"
+	handlers "template/internal/delivery/handlers"
 	"template/internal/repository"
 	"template/internal/service"
 	"template/pkg/log"

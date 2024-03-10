@@ -19,6 +19,12 @@ type MatrixBase struct {
 	Data       []MatrixNode `json:"data"`
 }
 
+type MatrixDifference struct {
+	Updated [][2]MatrixNode `json:"updated"`
+	Added   []MatrixNode    `json:"added"`
+	Deleted []MatrixNode    `json:"deleted"`
+}
+
 // на бэке вставляем таймстамп
 type Matrix struct {
 	MatrixBase

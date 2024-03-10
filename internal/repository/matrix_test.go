@@ -23,7 +23,7 @@ func initDB() *sqlx.DB {
 	return db
 }
 
-func TestMatrixRepo_GetHistory(t *testing.T) {
+func TestMatrixRepoGetHistory(t *testing.T) {
 	db := initDB()
 
 	today := time.Now()
@@ -42,11 +42,12 @@ func TestMatrixRepo_GetHistory(t *testing.T) {
 	fmt.Println(err)
 }
 
-func TestMatrixRepo_Create(t *testing.T) {
+func TestMatrixRepoCreateGetDifference(t *testing.T) {
 	db := initDB()
 
 	repo := InitMatrixRepo(db)
-	data := models.MatrixBase{
+
+	data1 := models.MatrixBase{
 		Name:       "File_1",
 		IsBaseLine: false,
 		ParentName: null.NewString("", false),
@@ -68,10 +69,45 @@ func TestMatrixRepo_Create(t *testing.T) {
 			},
 		},
 	}
+	data2 := models.MatrixBase{
+		Name:       "File_2",
+		IsBaseLine: false,
+		ParentName: null.NewString("File_1", true),
+		Data: []models.MatrixNode{
+			{
+				MicroCategoryID: 1,
+				RegionID:        1,
+				Price:           100,
+			},
+			{
+				MicroCategoryID: 2,
+				RegionID:        2,
+				Price:           1500,
+			},
+			{
+				MicroCategoryID: 3,
+				RegionID:        4,
+				Price:           230,
+			},
+		},
+	}
 
-	name, err := repo.CreateMatrix(context.Background(), data)
+	name, err := repo.CreateMatrix(context.Background(), data1)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(name)
+
+	name, err = repo.CreateMatrix(context.Background(), data2)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(name)
+
+	difference, err := repo.GetDifference(context.Background(), "File_1", "File_2")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%#v\n", difference)
 }

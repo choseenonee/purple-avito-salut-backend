@@ -23,5 +23,6 @@ type Microcategories interface {
 }
 
 type Matrix interface {
-	GetHistory(ctx context.Context, timeStart time.Time, timeEnd time.Time, matrixType string)
+	GetHistory(ctx context.Context, timeStart time.Time, timeEnd time.Time, matrixType string) error
+	CreateMatrix(ctx context.Context, matrix models.MatrixBase) error
 }

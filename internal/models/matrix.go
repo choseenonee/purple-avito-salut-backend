@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"github.com/guregu/null"
+	"time"
+)
 
 type Node struct {
 	MicroCategoryID int `json:"microcategory_id"`
@@ -10,10 +13,10 @@ type Node struct {
 
 // с фронта без UNIX, надо будет приклеить
 type MatrixBase struct {
-	Name       string `json:"name"`
-	IsBaseLine bool   `json:"is_baseline"`
-	ParentName string `json:"parent_name"`
-	Data       []Node `json:"data"`
+	Name       string      `json:"name"`
+	IsBaseLine bool        `json:"is_baseline"`
+	ParentName null.String `json:"parent_name"`
+	Data       []Node      `json:"data"`
 }
 
 // на бэке вставляем таймстамп

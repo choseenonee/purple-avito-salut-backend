@@ -17,13 +17,6 @@ CREATE TABLE IF NOT EXISTS matrix_metadata (
     parent_matrix_name VARCHAR
 );
 
-ALTER TABLE matrix_metadata
-    ADD CONSTRAINT fk_parent_matrix
-        FOREIGN KEY (parent_matrix_name) REFERENCES matrix(name);
-
-ALTER TABLE matrix_metadata
-    ADD CONSTRAINT fk_matrix
-        FOREIGN KEY (matrix_name) REFERENCES matrix(name) ON DELETE CASCADE;
 -- +goose StatementEnd
 
 -- +goose Down

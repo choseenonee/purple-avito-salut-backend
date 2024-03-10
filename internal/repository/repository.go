@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"template/internal/models"
+	"time"
 )
 
 type Regions interface {
@@ -17,6 +18,6 @@ type Users interface {
 	Create(ctx context.Context, user models.UserBase) (int, error)
 }
 
-type Matix interface {
-	Create(ctx context.Context)
+type Matrix interface {
+	GetHistory(ctx context.Context, timeStart time.Time, timeEnd time.Time, matrixType string)
 }

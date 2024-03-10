@@ -54,6 +54,9 @@ func (m MatrixHandler) CreateMatrix(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, name)
+}
+
 // GetTendency @Summary Get price tendency
 // @Description Retrieves price difference in time span
 // @Tags matrix
@@ -87,9 +90,6 @@ func (m MatrixHandler) GetTendency(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, matrices)
-}
-
-	c.JSON(http.StatusOK, name)
 }
 
 // GetHistory @Summary Get matrices by time start, time end and matrix type (can be null)
@@ -157,7 +157,7 @@ func (m MatrixHandler) GetDifference(c *gin.Context) {
 
 	c.JSON(http.StatusOK, matrices)
 }
-  
+
 // GetMatrix @Summary Get matrix by name and page
 // @Description Retrieves a specific page of the matrix identified by its name.
 // @Tags matrix

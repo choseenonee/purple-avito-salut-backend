@@ -13,18 +13,18 @@ default: start
 
 # Target to start the application
 start:
-	$(DC) up
+	$(DC) --env-file ../.env up
 
 # Target to perform a soft restart (without removing source images)
 soft-restart:
 	$(DC) stop
-	$(DC) up
+	$(DC) --env-file ../.env up
 
 # Target to perform a hard restart (with removal of source images)
 hard-restart: update
 	$(DC) down
 	$(DOC) rmi deploy-app
-	$(DC) up --build
+	$(DC) --env-file ../.env up --build
 
 # Helper target to stop all services
 stop:

@@ -36,7 +36,7 @@ func TestMatrixRepoGetHistory(t *testing.T) {
 		IsBaseline: null.NewBool(false, false),
 	}
 
-	repo := InitMatrixRepo(db)
+	repo := InitMatrixRepo(db, 100)
 	res, err := repo.GetHistory(context.Background(), data)
 	fmt.Println(res)
 	fmt.Println(err)
@@ -45,7 +45,7 @@ func TestMatrixRepoGetHistory(t *testing.T) {
 func TestMatrixRepoCreateGetDifference(t *testing.T) {
 	db := initDB()
 
-	repo := InitMatrixRepo(db)
+	repo := InitMatrixRepo(db, 100)
 
 	data1 := models.MatrixBase{
 		Name:       "File_1",
@@ -115,7 +115,7 @@ func TestMatrixRepoCreateGetDifference(t *testing.T) {
 func TestMatrixRepo_GetPriceTendency(t *testing.T) {
 	db := initDB()
 
-	repo := InitMatrixRepo(db)
+	repo := InitMatrixRepo(db, 100)
 
 	// from postgres time to go time.Time
 	timestampStr := "2024-03-10 19:52:37.053174"

@@ -36,7 +36,7 @@ func TestMatrixRepoGetHistory(t *testing.T) {
 		IsBaseline: null.NewBool(false, false),
 	}
 
-	repo := InitMatrixRepo(db, 10)
+	repo := InitMatrixRepo(db)
 	res, err := repo.GetHistory(context.Background(), data)
 	fmt.Println(res)
 	fmt.Println(err)
@@ -45,7 +45,7 @@ func TestMatrixRepoGetHistory(t *testing.T) {
 func TestMatrixRepoCreateGetDifference(t *testing.T) {
 	db := initDB()
 
-	repo := InitMatrixRepo(db, 10)
+	repo := InitMatrixRepo(db)
 
 	data1 := models.MatrixBase{
 		Name:       "File_1",
@@ -134,6 +134,9 @@ func TestMatrixRepo_GetPriceTendency(t *testing.T) {
 		TimeStart:       timestamp,
 		TimeEnd:         tomorrow,
 	}
+
+	fmt.Println(timestamp)
+	fmt.Println(tomorrow)
 
 	tendency, err := repo.GetPriceTendency(context.Background(), data)
 

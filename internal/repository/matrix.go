@@ -329,3 +329,64 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 
 	return difference, nil
 }
+
+func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, page int) (models.Matrix, error) {
+	var matrix models.Matrix
+
+	selectQuery := `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
+					JOIN matrix_metadata mm ON matrix.name = mm.matrix_name
+					WHERE name = $1 OFFSET $2 LIMIT $3;`
+
+	rows, err := m.db.QueryxContext(ctx, selectQuery, matrixName, (page-1)*m.MaxOnPage, m.MaxOnPage)
+	if err != nil {
+		return models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var row models.MatrixNode
+
+		err := rows.Scan(&matrix.Name, &row.MicroCategoryID, &row.RegionID, &row.Price, &matrix.TimeStamp, &matrix.IsBaseLine, &matrix.ParentName)
+		if err != nil {
+			return models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+		}
+
+		matrix.Data = append(matrix.Data, row)
+	}
+
+	if err := rows.Err(); err != nil {
+		return models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+	}
+
+	return matrix, nil
+}
+
+func (m matrixRepo) GetMatricesByDuration(ctx context.Context, timeStart, timeEnd time.Time) ([]models.Matrix, error) {
+	var matrices []models.Matrix
+
+	selectQuery := `SELECT matrix_name, timestamp, is_baseline, parent_matrix_name FROM matrix_metadata
+					WHERE timestamp BETWEEN $1 AND $2;`
+
+	rows, err := m.db.QueryxContext(ctx, selectQuery, timeStart, timeEnd)
+	if err != nil {
+		return []models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var matrix models.Matrix
+
+		err := rows.Scan(&matrix.Name, &matrix.TimeStamp, &matrix.IsBaseLine, &matrix.ParentName)
+		if err != nil {
+			return []models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+		}
+
+		matrices = append(matrices, matrix)
+	}
+
+	if err := rows.Err(); err != nil {
+		return []models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+	}
+
+	return matrices, nil
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"template/internal/models"
 	"template/internal/repository"
+	"time"
 )
 
 type matrixService struct {
@@ -29,4 +30,8 @@ func (m matrixService) GetDifference(ctx context.Context, matrixName1, matrixNam
 
 func (m matrixService) GetTendency(ctx context.Context, data models.GetTendencyNode) ([]models.ResponseTendencyNode, error) {
 	return m.matrixRepo.GetPriceTendency(ctx, data)
+}
+
+func (m matrixService) GetMatricesByDuration(ctx context.Context, timeStart, timeEnd time.Time) ([]models.Matrix, error) {
+	return m.matrixRepo.GetMatricesByDuration(ctx, timeStart, timeEnd)
 }

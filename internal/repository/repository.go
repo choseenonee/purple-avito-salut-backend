@@ -30,3 +30,6 @@ type Matrix interface {
 	GetPriceTendency(ctx context.Context, data models.GetTendencyNode) ([]models.ResponseTendencyNode, error)
 	GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error)
 }
+
+type Nodes interface {
+}

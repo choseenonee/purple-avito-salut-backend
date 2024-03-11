@@ -1,31 +1,16 @@
-# go-gin-template
-Template with 
+# purple-avito-salut-backend
+
+### Deploy
+`cd deploy`
 <br>
-Postgres (goose migrations)
-<br>
-Redis
-<br>
-Rabbit
-<br>
-Gin (swaggo swagger gen)
-<br>
-Docker, and docker-compose
+`make start` or `docker-compose up`
 <br>
 
-launch redis and postgres:
+#### Apply migration to DB
+Linux/macOS
 <br>
-``docker run --name postgres -e POSTGRES_PASSWORD=postgres -d -p 5432:5432 postgres``
+`goose -dir deploy/migrations postgres "postgresql://postgres:postgres@localhost:5432/postgres" up`
 <br>
-``docker run --name redis -d -p 6379:6379 redis``
+Windows
 <br>
-``docker run -d --name jaeger -p 16686:16686 -p 14268:14268 jaegertracing/all-in-one:1.41``
-<br>
-goose migration: ``goose -dir deploy/migrations postgres "postgresql://postgres:postgres@localhost:5432/postgres" up``
-<br>
-launch main.go with cmd workdir, and [click](http://127.0.0.1:8080/swagger/index.html#/)
-<br>
-
-
-
-
-**_TRACING ONLY IN REFRESH/GETME handlers_**
+`goose -dir deploy\migrations postgres "postgresql://postgres:postgres@localhost:5432/postgres" up`

@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/trace"
 	"net/http"
+	"strconv"
 	"template/internal/models"
 	_ "template/internal/models/swagger"
 	"template/internal/service"

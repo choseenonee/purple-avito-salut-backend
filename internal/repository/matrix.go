@@ -14,11 +14,12 @@ import (
 )
 
 type matrixRepo struct {
-	db *sqlx.DB
+	db        *sqlx.DB
+	MaxOnPage int
 }
 
-func InitMatrixRepo(db *sqlx.DB) Matrix {
-	return matrixRepo{db: db}
+func InitMatrixRepo(db *sqlx.DB, MaxOnPage int) Matrix {
+	return matrixRepo{MaxOnPage: MaxOnPage, db: db}
 }
 
 func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) (string, error) {

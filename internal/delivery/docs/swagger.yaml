@@ -1,0 +1,322 @@
+definitions:
+  models.GetTendencyNode:
+    properties:
+      microcategory_id:
+        type: integer
+      region_id:
+        type: integer
+      time_end:
+        type: string
+      time_start:
+        type: string
+    type: object
+  models.Matrix:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+      is_baseline:
+        type: boolean
+      name:
+        type: string
+      parent_name:
+        $ref: '#/definitions/null.String'
+      timestamp:
+        type: string
+    type: object
+  models.MatrixDifference:
+    properties:
+      added:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+      deleted:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+      updated:
+        items:
+          items:
+            $ref: '#/definitions/models.MatrixNode'
+          type: array
+        type: array
+    type: object
+  models.MatrixNode:
+    properties:
+      microcategory_id:
+        type: integer
+      price:
+        type: integer
+      region_id:
+        type: integer
+    type: object
+  models.ResponseTendencyNode:
+    properties:
+      price:
+        type: integer
+      timestamp:
+        type: string
+    type: object
+  null.String:
+    properties:
+      string:
+        type: string
+      valid:
+        description: Valid is true if String is not NULL
+        type: boolean
+    type: object
+  swagger.GetHistoryMatrix:
+    properties:
+      is_baseline:
+        type: boolean
+      time_end:
+        type: string
+      time_start:
+        type: string
+    type: object
+  swagger.MatrixBase:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+      is_baseline:
+        type: boolean
+      name:
+        type: string
+      parent_name:
+        type: string
+    type: object
+  swagger.ResponseHistoryMatrix:
+    properties:
+      name:
+        type: string
+      parent_name:
+        type: string
+      timestamp:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /matrix/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Matrix create
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/swagger.MatrixBase'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully created matrix
+          schema:
+            type: string
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - matrix
+  /matrix/get_difference:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the differences between two matrices identified by their
+        names.
+      parameters:
+      - description: Name of the first matrix
+        in: query
+        name: from_name
+        required: true
+        type: string
+      - description: Name of the second matrix
+        in: query
+        name: to_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Found matrices differences
+          schema:
+            items:
+              $ref: '#/definitions/models.MatrixDifference'
+            type: array
+        "400":
+          description: Invalid input, missing matrix names
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - matrix
+  /matrix/get_history:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Get data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/swagger.GetHistoryMatrix'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Found matrixes
+          schema:
+            items:
+              $ref: '#/definitions/swagger.ResponseHistoryMatrix'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - matrix
+  /matrix/get_matrices_by_duration:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves matrices that fall within the specified time duration.
+      parameters:
+      - description: Start time of the duration (RFC3339 format)
+        in: query
+        name: time_from
+        required: true
+        type: string
+      - description: End time of the duration (RFC3339 format)
+        in: query
+        name: time_to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved matrices within the specified duration
+          schema:
+            items:
+              $ref: '#/definitions/models.Matrix'
+            type: array
+        "400":
+          description: Invalid input, missing or incorrect parameters
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - matrix
+  /matrix/get_matrix:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a specific page of the matrix identified by its name.
+      parameters:
+      - description: Name of the matrix to retrieve
+        in: query
+        name: matrix_name
+        required: true
+        type: string
+      - description: Page number of the matrix to retrieve
+        in: query
+        name: page
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved the specified page of the matrix
+          schema:
+            items:
+              $ref: '#/definitions/models.Matrix'
+            type: array
+        "400":
+          description: Invalid input, missing or incorrect parameters
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - matrix
+  /matrix/get_tendency:
+    put:
+      consumes:
+      - application/json
+      description: Retrieves price difference in time span
+      parameters:
+      - description: Get data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/models.GetTendencyNode'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Found prices in time span and one before it
+          schema:
+            items:
+              $ref: '#/definitions/models.ResponseTendencyNode'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - matrix
+swagger: "2.0"

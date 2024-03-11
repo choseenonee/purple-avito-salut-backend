@@ -3,17 +3,19 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel/trace"
 	handlers "template/internal/delivery/handlers"
 	"template/internal/repository"
 	"template/internal/service"
+	"template/pkg/config"
 	"template/pkg/log"
 )
 
 func RegisterMatrixUser(r *gin.Engine, db *sqlx.DB, logger *log.Logs, tracer trace.Tracer) *gin.RouterGroup {
 	matrixRouter := r.Group("/matrix")
 
-	matrixRepo := repository.InitMatrixRepo(db)
+	matrixRepo := repository.InitMatrixRepo(db, viper.GetInt(config.TimeOut))
 
 	matrixService := service.InitMatrixService(matrixRepo)
 	matrixHandlers := handlers.InitMatrixHandler(matrixService, tracer)

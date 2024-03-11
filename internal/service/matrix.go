@@ -32,6 +32,10 @@ func (m matrixService) GetTendency(ctx context.Context, data models.GetTendencyN
 	return m.matrixRepo.GetPriceTendency(ctx, data)
 }
 
+func (m matrixService) GetMatrix(ctx context.Context, matrixName string, page int) (models.Matrix, error) {
+	return m.matrixRepo.GetMatrix(ctx, matrixName, page)
+}
+
 func (m matrixService) GetMatricesByDuration(ctx context.Context, timeStart, timeEnd time.Time) ([]models.Matrix, error) {
 	return m.matrixRepo.GetMatricesByDuration(ctx, timeStart, timeEnd)
 }

@@ -32,4 +32,5 @@ type Matrix interface {
 }
 
 type Nodes interface {
+	GetMicrocategoryTree() ([]models.NodeRaw, error)
 }

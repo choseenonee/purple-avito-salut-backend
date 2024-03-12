@@ -41,7 +41,7 @@ func (h Handler) GetPrice(c *gin.Context) {
 	}
 
 	span.AddEvent(CallToService)
-	response, err := h.service.GetMicroCategoryPath(ctx, inData.MicroCategoryID)
+	response, err := h.service.GetPrice(ctx, inData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

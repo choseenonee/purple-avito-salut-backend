@@ -26,7 +26,8 @@ func Start(db *sqlx.DB, logger *log.Logs, tracer trace.Tracer, middleware middle
 
 	repo := repository.InitRepository(db)
 
-	service := service2.InitService(repo)
+	// FIXME: matrix name чета сделать надо...
+	service := service2.InitService(repo, "baseline_1710203720")
 
 	handler := handlers.InitHandler(service, tracer)
 

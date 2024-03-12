@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"github.com/guregu/null"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"template/pkg/customerr"
@@ -10,9 +11,10 @@ import (
 
 type Repository interface {
 	GetMicroCategoryPath(ctx context.Context, microCategoryID int) ([]int, error)
-	//GetRegionPath(regionID int) ([]int, error)
-	//// string - matrix name (from where we got this)
-	//GetPriceFromBaseLine(microcategoryID int, regionID int) (int, string, error)
+	GetRegionPath(ctx context.Context, microCategoryID int) ([]int, error)
+	//GetPricesToPreLoad(ctx context.Context, microcategoryID int, regionID int, matrixName string) (int, int, error)
+	GetPriceFromBaseLine(ctx context.Context, microcategoryID int, regionID int, matrixName string) (int, error)
+	GetRelationsWithPrice(ctx context.Context, matrixName string) ([][4]int, [][4]int, error)
 	// TODO: discount matrix add
 }
 
@@ -23,6 +25,117 @@ type repostitoryStruct struct {
 func InitRepository(db *sqlx.DB) Repository {
 	return repostitoryStruct{db: db}
 }
+
+// GetRelationsWithPrice
+// Categories: parent, child, parent_price, child_price аналогично regions: ...
+func (r repostitoryStruct) GetRelationsWithPrice(ctx context.Context, matrixName string) ([][4]int, [][4]int, error) {
+	var categoryData [][4]int
+	var regionData [][4]int
+
+	categoryQuery := `SELECT
+	rr.parent_id,
+		rr.child_id,
+		matrix_parent.price AS parent_price,
+		matrix_child.price AS child_price
+	FROM
+	relationships_microcategories rr
+	LEFT JOIN
+	matrix AS matrix_parent ON rr.parent_id = matrix_parent.microcategory_id AND matrix_parent.name = $1
+	LEFT JOIN
+	matrix AS matrix_child ON rr.child_id = matrix_child.microcategory_id AND matrix_child.name = $1
+	ORDER BY
+	rr.parent_id DESC;`
+
+	rows, err := r.db.QueryContext(ctx, categoryQuery, matrixName)
+	if err != nil {
+		return [][4]int{}, [][4]int{}, nil
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var parentID int
+		var childID int
+		var parentPrice null.Int
+		var childPrice null.Int
+
+		err = rows.Scan(&parentID, &childID, &parentPrice, &childPrice)
+		if err != nil {
+			return [][4]int{}, [][4]int{}, nil
+		}
+
+		categoryData = append(categoryData, [4]int{parentID, childID, int(parentPrice.Int64), int(childPrice.Int64)})
+	}
+
+	if rows.Err() != nil {
+		return [][4]int{}, [][4]int{}, nil
+	}
+
+	regionQuery := `SELECT
+	rr.parent_id,
+		rr.child_id,
+		matrix_parent.price AS parent_price,
+		matrix_child.price AS child_price
+	FROM
+	relationships_regions rr
+	LEFT JOIN
+	matrix AS matrix_parent ON rr.parent_id = matrix_parent.region_id AND matrix_parent.name = $1
+	LEFT JOIN
+	matrix AS matrix_child ON rr.child_id = matrix_child.region_id AND matrix_child.name = $1
+	ORDER BY
+	rr.parent_id DESC;`
+
+	rows, err = r.db.QueryContext(ctx, regionQuery, matrixName)
+	if err != nil {
+		return [][4]int{}, [][4]int{}, nil
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var parentID int
+		var childID int
+		var parentPrice null.Int
+		var childPrice null.Int
+
+		err = rows.Scan(&parentID, &childID, &parentPrice, &childPrice)
+		if err != nil {
+			return [][4]int{}, [][4]int{}, nil
+		}
+
+		regionData = append(regionData, [4]int{parentID, childID, int(parentPrice.Int64), int(childPrice.Int64)})
+	}
+
+	if rows.Err() != nil {
+		return [][4]int{}, [][4]int{}, nil
+	}
+
+	return categoryData, regionData, nil
+}
+
+//// GetPrice categoryPrice, regionPrice
+//func (r repostitoryStruct) GetPricesToPreLoad(ctx context.Context, microcategoryID int, regionID int, matrixName string) (int, int, error) {
+//	var categoryPrice int
+//	var regionPrice int
+//
+//	categoryQuery := `SELECT price FROM matrix WHERE name = $1 AND microcategory_id = $2 LIMIT 1;`
+//
+//	row := r.db.QueryRowContext(ctx, categoryQuery, matrixName, microcategoryID)
+//	err := row.Scan(&categoryPrice)
+//	if err != nil {
+//		return 0, 0, err
+//	}
+//
+//	regionQuery := `SELECT price FROM matrix WHERE name = $1 AND region_id = $2 LIMIT 1;`
+//
+//	row = r.db.QueryRowContext(ctx, regionQuery, matrixName, regionID)
+//	err = row.Scan(&regionPrice)
+//	if err != nil {
+//		return 0, 0, err
+//	}
+//
+//	return categoryPrice, regionPrice, nil
+//}
 
 func (r repostitoryStruct) GetMicroCategoryPath(ctx context.Context, microCategoryID int) ([]int, error) {
 	path := make([]int, 0, 10)
@@ -93,7 +206,7 @@ func (r repostitoryStruct) GetRegionPath(ctx context.Context, microCategoryID in
         rl.parent_id,
         p.path_array || rl.child_id -- Добавляем child_id к пути
     FROM
-        relationships_microcategories rl
+        relationships_regions rl
             JOIN path p ON p.parent_id = rl.child_id
 )
 SELECT
@@ -128,4 +241,19 @@ WHERE
 	}
 
 	return path, nil
+}
+
+func (r repostitoryStruct) GetPriceFromBaseLine(ctx context.Context, microcategoryID int, regionID int, matrixName string) (int, error) {
+	// TODO: в один запрос по приходящему списку, ну или хоть как нибудь оптимизировать
+	var price int
+
+	query := `SELECT price FROM matrix WHERE microcategory_id = $1 AND region_id = $2 AND name = $3;`
+
+	row := r.db.QueryRowContext(ctx, query, microcategoryID, regionID, matrixName)
+	err := row.Scan(&price)
+	if err != nil {
+		return 0, err
+	}
+
+	return price, nil
 }

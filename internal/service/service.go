@@ -14,3 +14,7 @@ type Matrix interface {
 	GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error)
 	GetTendency(ctx context.Context, data models.GetTendencyNode) ([]models.ResponseTendencyNode, error)
 }
+
+type Update interface {
+	PrepareStorage(ctx context.Context, baseLineMatrixName string, discountMatrixNames []string) (models.PreparedStorage, error)
+}

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"github.com/guregu/null"
 	"github.com/jmoiron/sqlx"
 	"strings"
 	"template/internal/models"
@@ -345,12 +346,28 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, page int) (models.Matrix, error) {
 	var matrix models.Matrix
 
-	selectQuery := `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
+	var selectQuery string
+
+	if page == -1 {
+		selectQuery = `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
+					JOIN matrix_metadata mm ON matrix.name = mm.matrix_name
+                    WHERE name = $1
+                    ORDER BY (microcategory_id, region_id) DESC`
+	} else {
+		selectQuery = `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
 					JOIN matrix_metadata mm ON matrix.name = mm.matrix_name
                     WHERE name = $1
                     ORDER BY (microcategory_id, region_id) DESC OFFSET $2 LIMIT $3;`
+	}
 
-	rows, err := m.db.QueryxContext(ctx, selectQuery, matrixName, (page-1)*m.MaxOnPage, m.MaxOnPage)
+	var rows *sqlx.Rows
+	var err error
+
+	if page == -1 {
+		rows, err = m.db.QueryxContext(ctx, selectQuery, matrixName)
+	} else {
+		rows, err = m.db.QueryxContext(ctx, selectQuery, matrixName, (page-1)*m.MaxOnPage, m.MaxOnPage)
+	}
 	if err != nil {
 		return models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
 	}
@@ -402,4 +419,85 @@ func (m matrixRepo) GetMatricesByDuration(ctx context.Context, timeStart, timeEn
 	}
 
 	return matrices, nil
+}
+
+func (r matrixRepo) GetRelationsWithPrice(ctx context.Context, matrixName string) ([][4]int, [][4]int, error) {
+	var categoryData [][4]int
+	var regionData [][4]int
+
+	categoryQuery := `SELECT
+		rr.parent_id,
+		rr.child_id,
+		matrix_parent.price AS parent_price,
+		matrix_child.price AS child_price
+	FROM relationships_microcategories rr
+	LEFT JOIN matrix AS matrix_parent ON rr.parent_id = matrix_parent.microcategory_id AND matrix_parent.name = $1
+	LEFT JOIN matrix AS matrix_child ON rr.child_id = matrix_child.microcategory_id AND matrix_child.name = $1
+	ORDER BY rr.parent_id;`
+
+	rows, err := r.db.QueryContext(ctx, categoryQuery, matrixName)
+	if err != nil {
+		return [][4]int{}, [][4]int{}, nil
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var parentID int
+		var childID int
+		var parentPrice null.Int
+		var childPrice null.Int
+
+		err = rows.Scan(&parentID, &childID, &parentPrice, &childPrice)
+		if err != nil {
+			return [][4]int{}, [][4]int{}, nil
+		}
+
+		categoryData = append(categoryData, [4]int{parentID, childID, int(parentPrice.Int64), int(childPrice.Int64)})
+	}
+
+	if rows.Err() != nil {
+		return [][4]int{}, [][4]int{}, nil
+	}
+
+	regionQuery := `SELECT
+	rr.parent_id,
+		rr.child_id,
+		matrix_parent.price AS parent_price,
+		matrix_child.price AS child_price
+	FROM
+	relationships_regions rr
+	LEFT JOIN
+	matrix AS matrix_parent ON rr.parent_id = matrix_parent.region_id AND matrix_parent.name = $1
+	LEFT JOIN
+	matrix AS matrix_child ON rr.child_id = matrix_child.region_id AND matrix_child.name = $1
+	ORDER BY
+	rr.parent_id;`
+
+	rows, err = r.db.QueryContext(ctx, regionQuery, matrixName)
+	if err != nil {
+		return [][4]int{}, [][4]int{}, nil
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var parentID int
+		var childID int
+		var parentPrice null.Int
+		var childPrice null.Int
+
+		err = rows.Scan(&parentID, &childID, &parentPrice, &childPrice)
+		if err != nil {
+			return [][4]int{}, [][4]int{}, nil
+		}
+
+		regionData = append(regionData, [4]int{parentID, childID, int(parentPrice.Int64), int(childPrice.Int64)})
+	}
+
+	if rows.Err() != nil {
+		return [][4]int{}, [][4]int{}, nil
+	}
+
+	return categoryData, regionData, nil
 }

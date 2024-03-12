@@ -130,10 +130,12 @@ func TestLoadLocations(t *testing.T) {
 	db := initDB()
 
 	for _, i := range data {
-		_, err := db.ExecContext(context.Background(), `INSERT INTO regions (name) VALUES ($1);`, i)
+		g, err := db.ExecContext(context.Background(), `INSERT INTO regions (name) VALUES ($1);`, i)
 		if err != nil {
 			panic(err.Error())
 		}
+
+		_ = g
 
 		//idRaw, err := res.LastInsertId()
 		//if err != nil {
@@ -215,6 +217,49 @@ func TestBaseLineMatrixLoad(t *testing.T) {
 
 	_, err = tx.ExecContext(context.Background(), `INSERT INTO postgres.public.matrix_metadata 
     (matrix_name, timestamp, is_baseline, parent_matrix_name) VALUES ('baseline_test_metadata', $1, 'true', $2);`, time.Now(), nil)
+
+	err = tx.Commit()
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Println("okay!")
+}
+
+func TestDiscountMatrixLoad(t *testing.T) {
+	// cat loc price
+	datas := [][][3]int{
+		{
+			{5, 12, 10000},
+			{5, 7, 10001},
+			{14, 14, 10002},
+		},
+		{
+			{4, 2, 200},
+			{4, 13, 200},
+			{11, 13, 200},
+			{11, 2, 200},
+		},
+	}
+
+	db := initDB()
+
+	tx, err := db.BeginTx(context.Background(), nil)
+	if err != nil {
+		panic(err.Error())
+	}
+	for d := 0; d < len(datas); d++ {
+		for i := 0; i < len(datas[d]); i++ {
+			_, err = tx.ExecContext(context.Background(), `INSERT INTO matrix (name, microcategory_id, region_id, price) VALUES ($4, $1, $2, $3);`,
+				datas[d][i][0], datas[d][i][1], datas[d][i][2], fmt.Sprintf("discount_%v", d))
+			if err != nil {
+				_ = tx.Rollback()
+				panic(err.Error())
+			}
+		}
+
+		_, err = tx.ExecContext(context.Background(), `INSERT INTO postgres.public.matrix_metadata 
+    	(matrix_name, timestamp, is_baseline, parent_matrix_name) VALUES ($3, $1, 'false', $2);`, time.Now(), nil, fmt.Sprintf("discount_%v", d))
+	}
 
 	err = tx.Commit()
 	if err != nil {

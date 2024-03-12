@@ -29,6 +29,7 @@ type Matrix interface {
 	GetHistory(ctx context.Context, matrix models.GetHistoryMatrix) ([]models.ResponseHistoryMatrix, error)
 	GetPriceTendency(ctx context.Context, data models.GetTendencyNode) ([]models.ResponseTendencyNode, error)
 	GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error)
+	GetRelationsWithPrice(ctx context.Context, matrixName string) ([][4]int, [][4]int, error)
 }
 
 type Nodes interface {

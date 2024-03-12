@@ -15,7 +15,7 @@ import (
 func RegisterMatrixUser(r *gin.Engine, db *sqlx.DB, logger *log.Logs, tracer trace.Tracer) *gin.RouterGroup {
 	matrixRouter := r.Group("/matrix")
 
-	matrixRepo := repository.InitMatrixRepo(db, viper.GetInt(config.TimeOut))
+	matrixRepo := repository.InitMatrixRepo(db, viper.GetInt(config.MaxOnPage))
 
 	matrixService := service.InitMatrixService(matrixRepo)
 	matrixHandlers := handlers.InitMatrixHandler(matrixService, tracer)

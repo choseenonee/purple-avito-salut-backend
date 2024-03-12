@@ -347,7 +347,8 @@ func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, page int) 
 
 	selectQuery := `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
 					JOIN matrix_metadata mm ON matrix.name = mm.matrix_name
-					WHERE name = $1 OFFSET $2 LIMIT $3;`
+                    WHERE name = $1
+                    ORDER BY (microcategory_id, region_id) DESC OFFSET $2 LIMIT $3;`
 
 	rows, err := m.db.QueryxContext(ctx, selectQuery, matrixName, (page-1)*m.MaxOnPage, m.MaxOnPage)
 	if err != nil {

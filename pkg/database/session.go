@@ -17,7 +17,7 @@ const (
 
 type Session interface {
 	Set(key string, data []int) error
-	Get(key string) ([]int, error)
+	Get() ([]int, []int, error)
 }
 
 type RedisSession struct {
@@ -58,17 +58,27 @@ func (rs RedisSession) Set(key string, data []int) error {
 	return rs.rdb.Set(context.Background(), key, dataBytes, rs.sessionExpiration).Err()
 }
 
-func (rs RedisSession) Get(key string) ([]int, error) {
-	dataBytes, err := rs.rdb.Get(context.Background(), key).Bytes()
+func (rs RedisSession) Get() ([]int, []int, error) {
+	dataBytesMicrocategory, err := rs.rdb.Get(context.Background(), Microcategory).Bytes()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	dataBytesRegions, err := rs.rdb.Get(context.Background(), Regions).Bytes()
+	if err != nil {
+		return nil, nil, err
 	}
 
-	var data []int
-	err = json.Unmarshal(dataBytes, &data)
+	var dataMicrocategory []int
+	err = json.Unmarshal(dataBytesMicrocategory, &dataMicrocategory)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return data, nil
+	var dataRegions []int
+	err = json.Unmarshal(dataBytesRegions, &dataRegions)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return dataMicrocategory, dataRegions, nil
 }

@@ -10,12 +10,14 @@ import (
 
 type Handler struct {
 	service service.Service
+	update  service.Update
 	tracer  trace.Tracer
 }
 
-func InitHandler(service service.Service, tracer trace.Tracer) Handler {
+func InitHandler(service service.Service, update service.Update, tracer trace.Tracer) Handler {
 	return Handler{
 		service: service,
+		update:  update,
 		tracer:  tracer,
 	}
 }
@@ -30,7 +32,7 @@ func InitHandler(service service.Service, tracer trace.Tracer) Handler {
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /price [put]
 func (h Handler) GetPrice(c *gin.Context) {
-	ctx, span := h.tracer.Start(c.Request.Context(), CreateMatrix)
+	ctx, span := h.tracer.Start(c.Request.Context(), GetPrice)
 	defer span.End()
 
 	var inData models.InData
@@ -48,4 +50,29 @@ func (h Handler) GetPrice(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// RecalculateRedis @Summary recalculates hops and updates price information
+// @Tags price
+// @Accept  json
+// @Produce  json
+// @Param name body models.UpdateMatrixName true "Get price"
+// @Success 204 "Successfully recalculated and updated price information"
+// @Failure 400 {object} map[string]string "Invalid input"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /recalculate [put]
+func (h Handler) RecalculateRedis(c *gin.Context) {
+	ctx, span := h.tracer.Start(c.Request.Context(), RecalculateRedis)
+	defer span.End()
+
+	var newBaseMatrixName models.UpdateMatrixName
+	if err := c.ShouldBindJSON(&newBaseMatrixName); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cringe data provided"})
+		return
+	}
+
+	span.AddEvent(CallToService)
+	h.update.ReRunInit(ctx, newBaseMatrixName.Name)
+
+	c.Status(http.StatusNoContent)
 }

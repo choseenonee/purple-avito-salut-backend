@@ -1,7 +1,8 @@
 package handlers
 
 const (
-	CreateMatrix  = "Create Matrix"
+	GetPrice         = "Getting price"
+	RecalculateRedis = "Create Matrix"
+
 	CallToService = "Call to service"
-	GetHistory    = "Get history"
 )

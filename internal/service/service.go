@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"template/internal/models"
 	"template/internal/repository"
+	"template/pkg/database"
 )
 
 type Service interface {
@@ -15,11 +17,12 @@ type Service interface {
 
 type serviceStruct struct {
 	repo                      repository.Repository
+	session                   database.Session
 	currentBaseLineMatrixName string
 }
 
-func InitService(repo repository.Repository, currentBaseLineMatrixName string) Service {
-	return serviceStruct{repo: repo, currentBaseLineMatrixName: currentBaseLineMatrixName}
+func InitService(repo repository.Repository, session database.Session, currentBaseLineMatrixName string) Service {
+	return serviceStruct{repo: repo, session: session, currentBaseLineMatrixName: currentBaseLineMatrixName}
 }
 
 func (s serviceStruct) GetPrice(ctx context.Context, inData models.InData) (models.OutData, error) {
@@ -33,23 +36,29 @@ func (s serviceStruct) GetPrice(ctx context.Context, inData models.InData) (mode
 		return models.OutData{}, err
 	}
 
-	// TODO: посмотреть в прыжках и обрезать path
+	fmt.Println(microCategoryPath)
+	fmt.Println(regionPath)
 
-	for _, regionID := range regionPath {
-		for _, microcategoryID := range microCategoryPath {
-			price, err := s.repo.GetPriceFromBaseLine(ctx, microcategoryID, regionID, s.currentBaseLineMatrixName)
-			if err != nil {
-				return models.OutData{}, err
-			}
-			if price != 0 {
-				return models.OutData{
-					MatrixName: s.currentBaseLineMatrixName,
-					Price:      price,
-					InData:     inData,
-				}, nil
-			}
-		}
+	dataMicrocategory, dataRegions, err := s.session.Get()
+	if err != nil {
+		return models.OutData{}, err
 	}
+
+	//for _, regionID := range regionPath {
+	//	for _, microcategoryID := range microCategoryPath {
+	//		price, err := s.repo.GetPriceFromBaseLine(ctx, microcategoryID, regionID, s.currentBaseLineMatrixName)
+	//		if err != nil {
+	//			return models.OutData{}, err
+	//		}
+	//		if price != 0 {
+	//			return models.OutData{
+	//				MatrixName: s.currentBaseLineMatrixName,
+	//				Price:      price,
+	//				InData:     inData,
+	//			}, nil
+	//		}
+	//	}
+	//}
 
 	return models.OutData{}, errors.New("wtf how i did not find price?)))")
 }

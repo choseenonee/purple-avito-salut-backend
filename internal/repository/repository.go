@@ -26,25 +26,19 @@ func InitRepository(db *sqlx.DB) Repository {
 	return repositoryStruct{db: db}
 }
 
-// GetRelationsWithPrice
-// Categories: parent, child, parent_price, child_price аналогично regions: ...
 func (r repositoryStruct) GetRelationsWithPrice(ctx context.Context, matrixName string) ([][4]int, [][4]int, error) {
 	var categoryData [][4]int
 	var regionData [][4]int
 
 	categoryQuery := `SELECT
-	rr.parent_id,
+		rr.parent_id,
 		rr.child_id,
 		matrix_parent.price AS parent_price,
 		matrix_child.price AS child_price
-	FROM
-	relationships_microcategories rr
-	LEFT JOIN
-	matrix AS matrix_parent ON rr.parent_id = matrix_parent.microcategory_id AND matrix_parent.name = $1
-	LEFT JOIN
-	matrix AS matrix_child ON rr.child_id = matrix_child.microcategory_id AND matrix_child.name = $1
-	ORDER BY
-	rr.parent_id DESC;`
+	FROM relationships_microcategories rr
+	LEFT JOIN matrix AS matrix_parent ON rr.parent_id = matrix_parent.microcategory_id AND matrix_parent.name = $1
+	LEFT JOIN matrix AS matrix_child ON rr.child_id = matrix_child.microcategory_id AND matrix_child.name = $1
+	ORDER BY rr.parent_id;`
 
 	rows, err := r.db.QueryContext(ctx, categoryQuery, matrixName)
 	if err != nil {
@@ -83,7 +77,7 @@ func (r repositoryStruct) GetRelationsWithPrice(ctx context.Context, matrixName 
 	LEFT JOIN
 	matrix AS matrix_child ON rr.child_id = matrix_child.region_id AND matrix_child.name = $1
 	ORDER BY
-	rr.parent_id DESC;`
+	rr.parent_id;`
 
 	rows, err = r.db.QueryContext(ctx, regionQuery, matrixName)
 	if err != nil {
@@ -141,27 +135,24 @@ func (r repositoryStruct) GetMicroCategoryPath(ctx context.Context, microCategor
 	path := make([]int, 0, 10)
 
 	selectQuery := `WITH RECURSIVE path AS (
-    SELECT
-        child_id,
-        parent_id,
-        ARRAY[child_id] AS path_array -- Массив для хранения пути
-    FROM relationships_microcategories
-    WHERE child_id = $1 -- Замените :your_child_id на интересующий вас child_id
-    UNION ALL
-    SELECT
-        rl.child_id,
-        rl.parent_id,
-        p.path_array || rl.child_id -- Добавляем child_id к пути
-    FROM
-        relationships_microcategories rl
-            JOIN path p ON p.parent_id = rl.child_id
-)
-SELECT
-    path_array
-FROM
-    path
-WHERE
-    parent_id = 1;`
+				    SELECT
+				        child_id,
+				        parent_id,
+				        ARRAY[child_id] AS path_array
+				    FROM relationships_microcategories
+				    WHERE child_id = $1
+				    UNION ALL
+				    SELECT
+				        rl.child_id,
+				        rl.parent_id,
+				        p.path_array || rl.child_id
+				    FROM
+				        relationships_microcategories rl
+				            JOIN path p ON p.parent_id = rl.child_id
+					)
+					SELECT path_array
+					FROM path
+					WHERE parent_id = 1;`
 
 	rows, err := r.db.QueryxContext(ctx, selectQuery, microCategoryID)
 	if err != nil {
@@ -194,27 +185,24 @@ func (r repositoryStruct) GetRegionPath(ctx context.Context, microCategoryID int
 	path := make([]int, 0, 10)
 
 	selectQuery := `WITH RECURSIVE path AS (
-    SELECT
-        child_id,
-        parent_id,
-        ARRAY[child_id] AS path_array -- Массив для хранения пути
-    FROM relationships_microcategories
-    WHERE child_id = $1 -- Замените :your_child_id на интересующий вас child_id
-    UNION ALL
-    SELECT
-        rl.child_id,
-        rl.parent_id,
-        p.path_array || rl.child_id -- Добавляем child_id к пути
-    FROM
-        relationships_regions rl
-            JOIN path p ON p.parent_id = rl.child_id
-)
-SELECT
-    path_array
-FROM
-    path
-WHERE
-    parent_id = 1;`
+					SELECT
+						child_id,
+						parent_id,
+						ARRAY[child_id] AS path_array 
+					FROM relationships_regions
+					WHERE child_id = $1
+					UNION ALL
+					SELECT
+						rl.child_id,
+						rl.parent_id,
+						p.path_array || rl.child_id
+					FROM
+						relationships_regions rl
+							JOIN path p ON p.parent_id = rl.child_id
+					)
+					SELECT path_array
+					FROM path
+					WHERE parent_id = 1;`
 
 	rows, err := r.db.QueryxContext(ctx, selectQuery, microCategoryID)
 	if err != nil {

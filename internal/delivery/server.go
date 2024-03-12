@@ -9,14 +9,15 @@ import (
 	"template/internal/delivery/handlers"
 	"template/internal/delivery/middleware"
 	"template/internal/repository"
-	service2 "template/internal/service"
+	"template/internal/service"
+	"template/pkg/database"
 	"template/pkg/log"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func Start(db *sqlx.DB, logger *log.Logs, tracer trace.Tracer, middleware middleware.Middleware) {
+func Start(db *sqlx.DB, rdb database.Session, logger *log.Logs, tracer trace.Tracer, middleware middleware.Middleware) {
 	r := gin.Default()
 
 	docs.SwaggerInfo.BasePath = "/"
@@ -27,11 +28,13 @@ func Start(db *sqlx.DB, logger *log.Logs, tracer trace.Tracer, middleware middle
 	repo := repository.InitRepository(db)
 
 	// FIXME: matrix name чета сделать надо...
-	service := service2.InitService(repo, "baseline_1710203720")
+	serv := service.InitService(repo, rdb, "baseline_1710203720")
+	update := service.InitUpdate(repo, rdb)
 
-	handler := handlers.InitHandler(service, tracer)
+	handler := handlers.InitHandler(serv, update, tracer)
 
 	r.PUT("/price", handler.GetPrice)
+	r.PUT("/recalculate", handler.RecalculateRedis)
 
 	if err := r.Run("0.0.0.0:8080"); err != nil {
 		panic(fmt.Sprintf("error running client: %v", err.Error()))

@@ -64,6 +64,53 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/recalculate": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "price"
+                ],
+                "parameters": [
+                    {
+                        "description": "Get price",
+                        "name": "name",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateMatrixName"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successfully recalculated and updated price information"
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -92,6 +139,14 @@ const docTemplate = `{
                 },
                 "region_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.UpdateMatrixName": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
                 }
             }
         }

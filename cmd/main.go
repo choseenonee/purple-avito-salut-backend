@@ -30,10 +30,13 @@ func main() {
 	db := database.GetDB()
 	logger.Info("Database Initialized")
 
+	rdb := database.InitRedisSession()
+
 	mdw := middleware.InitMiddleware(logger)
 
 	delivery.Start(
 		db,
+		rdb,
 		logger,
 		tracer,
 		mdw,

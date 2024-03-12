@@ -17,8 +17,8 @@ type updateStruct struct {
 	session database.Session
 }
 
-func InitUpdate(repo repository.Repository) Update {
-	return updateStruct{repo: repo}
+func InitUpdate(repo repository.Repository, session database.Session) Update {
+	return updateStruct{repo: repo, session: session}
 }
 
 func recursive(index int, in [][4]int, ans []int, lastWithPrice int, lastIndex int, isFirst bool) bool {
@@ -57,8 +57,8 @@ func (u updateStruct) ReRunInit(ctx context.Context, newMatrixName string) {
 		panic(err.Error())
 	}
 
-	categoryJumps := make([]int, len(categoryData)+1)
-	regionJumps := make([]int, len(regionData)+1)
+	categoryJumps := make([]int, categoryData[len(categoryData)-1][1])
+	regionJumps := make([]int, regionData[len(regionData)-1][1])
 
 	wg.Add(2)
 

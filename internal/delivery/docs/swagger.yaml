@@ -17,6 +17,11 @@ definitions:
       region_id:
         type: integer
     type: object
+  models.UpdateMatrixName:
+    properties:
+      name:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
@@ -38,6 +43,36 @@ paths:
           description: Successfully responsed with price
           schema:
             $ref: '#/definitions/models.OutData'
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - price
+  /recalculate:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Get price
+        in: body
+        name: name
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateMatrixName'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Successfully recalculated and updated price information
         "400":
           description: Invalid input
           schema:

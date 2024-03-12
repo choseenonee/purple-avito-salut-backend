@@ -43,6 +43,9 @@ func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) 
 			}
 			return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
 		}
+
+		defer rows.Close()
+
 		for rows.Next() {
 			parentNameExists = true
 		}
@@ -154,6 +157,8 @@ func (m matrixRepo) GetHistory(ctx context.Context, data models.GetHistoryMatrix
 		return []models.ResponseHistoryMatrix{}, err
 	}
 
+	defer rows.Close()
+
 	var matrix models.ResponseHistoryMatrix
 
 	for rows.Next() {
@@ -192,6 +197,8 @@ func (m matrixRepo) GetPriceTendency(ctx context.Context, data models.GetTendenc
 		return []models.ResponseTendencyNode{}, err
 	}
 
+	defer rows.Close()
+
 	var responses []models.ResponseTendencyNode
 
 	for rows.Next() {
@@ -216,10 +223,14 @@ func (m matrixRepo) GetPriceTendency(ctx context.Context, data models.GetTendenc
 								  AND microcategory_id = $2 AND region_id = $3
 								ORDER BY matrix_metadata.timestamp DESC`
 
+	rows.Close()
+
 	rows, err = m.db.QueryxContext(ctx, oneBeforeTimeStartQuery, data.TimeStart, data.MicrocategoryID, data.RegionID)
 	if err != nil {
 		return []models.ResponseTendencyNode{}, err
 	}
+
+	defer rows.Close()
 
 	for rows.Next() {
 		var response models.ResponseTendencyNode

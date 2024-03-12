@@ -6,8 +6,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.opentelemetry.io/otel/trace"
 	"template/internal/delivery/docs"
+	"template/internal/delivery/handlers"
 	"template/internal/delivery/middleware"
-	"template/internal/delivery/router"
+	"template/internal/repository"
+	service2 "template/internal/service"
 	"template/pkg/log"
 
 	swaggerFiles "github.com/swaggo/files"
@@ -22,7 +24,13 @@ func Start(db *sqlx.DB, logger *log.Logs, tracer trace.Tracer, middleware middle
 
 	r.Use(middleware.CORSMiddleware())
 
-	router.InitRouting(r, db, logger, tracer)
+	repo := repository.InitRepository(db)
+
+	service := service2.InitService(repo)
+
+	handler := handlers.InitHandler(service, tracer)
+
+	r.PUT("/price", handler.GetPrice)
 
 	if err := r.Run("0.0.0.0:8080"); err != nil {
 		panic(fmt.Sprintf("error running client: %v", err.Error()))

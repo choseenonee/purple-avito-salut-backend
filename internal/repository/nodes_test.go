@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestNodesRepo_GetMicrocategoryTree(t *testing.T) {
@@ -42,13 +43,102 @@ func recursive(index int, in [][4]int, ans []int, lastWithPrice int, lastIndex i
 }
 
 func TestNodesRepo_Algo(t *testing.T) {
-	in := [][4]int{{1, 2, 100, 0}, {1, 3, 100, 300}, {1, 4, 100, 400}, {2, 5, 0, 0}, {2, 6, 0, 0}, {3, 7, 300, 0}, {5, 8, 0, 900}, {5, 9, 0, 0}}
+	var mean int
 
-	ans := make([]int, 9)
+	for i := 0; i < 1000; i++ {
+		a := time.Now()
 
-	recursive(1, in, ans, 1, 0, true)
-	for index, value := range ans {
-		fmt.Println(fmt.Sprintf("from %v to %v", index+1, value))
+		in := [][4]int{{1, 2, 100, 0}, {1, 3, 100, 300}, {1, 4, 100, 400}, {2, 5, 0, 0}, {2, 6, 0, 0}, {3, 7, 300, 0}, {5, 8, 0, 900}, {5, 9, 0, 0}}
+
+		ans := make([]int, 9)
+
+		recursive(1, in, ans, 1, 0, true)
+		for index, value := range ans {
+			fmt.Println(fmt.Sprintf("from %v to %v", index+1, value))
+		}
+
+		fmt.Println(time.Since(a))
+
+		fmt.Println(ans)
 	}
-	fmt.Println(ans)
+}
+
+var tree = map[int][]int{}
+var bools = map[int]bool{}
+
+type Row struct {
+	Parent int
+	Child  int
+	CPrice bool
+}
+
+func treeRunner(start []int, prevPriceID int) {
+	var nextID int
+	for _, child := range start {
+		if bools[child] {
+			fmt.Println(child, child)
+			nextID = child
+		} else {
+			fmt.Println(child, prevPriceID)
+			nextID = prevPriceID
+		}
+
+		treeRunner(tree[child], nextID)
+	}
+}
+
+func TestNodesRepo_AlgoKolya(t *testing.T) {
+	a := time.Now()
+	data := []Row{
+		{
+			1,
+			2,
+			false,
+		},
+		{
+			1,
+			3,
+			true,
+		},
+		{
+			1,
+			4,
+			true,
+		},
+		{
+			2,
+			5,
+			false,
+		},
+		{
+			2,
+			6,
+			false,
+		},
+		{
+			5,
+			8,
+			true,
+		},
+		{
+			5,
+			9,
+			false,
+		},
+		{
+			3,
+			7,
+			false,
+		},
+	}
+
+	for _, row := range data {
+		tree[row.Parent] = append(tree[row.Parent], row.Child)
+		bools[row.Child] = row.CPrice
+	}
+
+	fmt.Println(1, 1)
+
+	treeRunner(tree[1], 1)
+	fmt.Println(time.Since(a))
 }

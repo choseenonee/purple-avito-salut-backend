@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"sync"
 	"template/internal/repository"
+	"template/pkg/database"
 )
 
 type Update interface {
@@ -11,7 +13,8 @@ type Update interface {
 }
 
 type updateStruct struct {
-	repo repository.Repository
+	repo    repository.Repository
+	session database.Session
 }
 
 func InitUpdate(repo repository.Repository) Update {
@@ -41,13 +44,12 @@ func recursive(index int, in [][4]int, ans []int, lastWithPrice int, lastIndex i
 			}
 		}
 		isFound = true
-		//_ = g
 	}
 	return isFound
 }
 
 func (u updateStruct) ReRunInit(ctx context.Context, newMatrixName string) {
-	// берём из постгри всё, считаем прыжки, сохраняем их в редиске
+	var wg sync.WaitGroup
 
 	categoryData, regionData, err := u.repo.GetRelationsWithPrice(ctx, newMatrixName)
 	if err != nil {
@@ -55,14 +57,29 @@ func (u updateStruct) ReRunInit(ctx context.Context, newMatrixName string) {
 		panic(err.Error())
 	}
 
-	// FIXME: заменить на maxID, а не len
-	categoryJumps := make([]int, len(categoryData))
+	categoryJumps := make([]int, len(categoryData)+1)
+	regionJumps := make([]int, len(regionData)+1)
 
-	go recursive(1, categoryData, categoryJumps, 1, 0, true)
+	wg.Add(2)
 
-	regionJumps := make([]int, len(categoryData))
+	go func() {
+		defer wg.Done()
+		recursive(1, categoryData, categoryJumps, 1, 0, true)
+	}()
 
-	go recursive(1, regionData, regionJumps, 1, 0, true)
+	go func() {
+		defer wg.Done()
+		recursive(1, regionData, regionJumps, 1, 0, true)
+	}()
 
-	// TODO: implement redis save
+	wg.Wait()
+
+	err = u.session.Set(database.Microcategory, categoryJumps)
+	if err != nil {
+		panic(err.Error())
+	}
+	err = u.session.Set(database.Regions, regionJumps)
+	if err != nil {
+		panic(err.Error())
+	}
 }

@@ -18,17 +18,17 @@ type Repository interface {
 	// TODO: discount matrix add
 }
 
-type repostitoryStruct struct {
+type repositoryStruct struct {
 	db *sqlx.DB
 }
 
 func InitRepository(db *sqlx.DB) Repository {
-	return repostitoryStruct{db: db}
+	return repositoryStruct{db: db}
 }
 
 // GetRelationsWithPrice
 // Categories: parent, child, parent_price, child_price аналогично regions: ...
-func (r repostitoryStruct) GetRelationsWithPrice(ctx context.Context, matrixName string) ([][4]int, [][4]int, error) {
+func (r repositoryStruct) GetRelationsWithPrice(ctx context.Context, matrixName string) ([][4]int, [][4]int, error) {
 	var categoryData [][4]int
 	var regionData [][4]int
 
@@ -114,7 +114,7 @@ func (r repostitoryStruct) GetRelationsWithPrice(ctx context.Context, matrixName
 }
 
 //// GetPrice categoryPrice, regionPrice
-//func (r repostitoryStruct) GetPricesToPreLoad(ctx context.Context, microcategoryID int, regionID int, matrixName string) (int, int, error) {
+//func (r repositoryStruct) GetPricesToPreLoad(ctx context.Context, microcategoryID int, regionID int, matrixName string) (int, int, error) {
 //	var categoryPrice int
 //	var regionPrice int
 //
@@ -137,7 +137,7 @@ func (r repostitoryStruct) GetRelationsWithPrice(ctx context.Context, matrixName
 //	return categoryPrice, regionPrice, nil
 //}
 
-func (r repostitoryStruct) GetMicroCategoryPath(ctx context.Context, microCategoryID int) ([]int, error) {
+func (r repositoryStruct) GetMicroCategoryPath(ctx context.Context, microCategoryID int) ([]int, error) {
 	path := make([]int, 0, 10)
 
 	selectQuery := `WITH RECURSIVE path AS (
@@ -190,7 +190,7 @@ WHERE
 	return path, nil
 }
 
-func (r repostitoryStruct) GetRegionPath(ctx context.Context, microCategoryID int) ([]int, error) {
+func (r repositoryStruct) GetRegionPath(ctx context.Context, microCategoryID int) ([]int, error) {
 	path := make([]int, 0, 10)
 
 	selectQuery := `WITH RECURSIVE path AS (
@@ -243,7 +243,7 @@ WHERE
 	return path, nil
 }
 
-func (r repostitoryStruct) GetPriceFromBaseLine(ctx context.Context, microcategoryID int, regionID int, matrixName string) (int, error) {
+func (r repositoryStruct) GetPriceFromBaseLine(ctx context.Context, microcategoryID int, regionID int, matrixName string) (int, error) {
 	// TODO: в один запрос по приходящему списку, ну или хоть как нибудь оптимизировать
 	var price int
 

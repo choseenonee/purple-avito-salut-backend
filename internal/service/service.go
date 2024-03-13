@@ -156,31 +156,39 @@ func (s *serviceStruct) GetPrice(ctx context.Context, inData models.InData) (mod
 
 	microCategoryPathAfterHop := make([]int, 0, 5)
 
+	errChan := make(chan error, 2)
+
 	wg.Add(1)
-	go func(microCategoryPathAfterHop *[]int) {
+	go func(microCategoryPathAfterHop *[]int, errchan chan error) {
 		defer wg.Done()
 		microCategoryPath, err := s.repo.GetMicroCategoryPath(ctx, inData.MicroCategoryID)
 		if err != nil {
+			errchan <- err
 			return
 		}
 		ans := s.calculateMicroCategoryPathAfterHops(microCategoryPath, *microCategoryPathAfterHop)
 		*microCategoryPathAfterHop = ans
-	}(&microCategoryPathAfterHop)
+	}(&microCategoryPathAfterHop, errChan)
 
 	regionPathAfterHop := make([]int, 0, 5)
 
 	wg.Add(1)
-	go func(regionPathAfterHop *[]int) {
+	go func(regionPathAfterHop *[]int, errchan chan error) {
 		defer wg.Done()
 		regionPath, err := s.repo.GetRegionPath(ctx, inData.RegionID)
 		if err != nil {
+			errchan <- err
 			return
 		}
 		ans := s.calculateRegionPathAfterHops(regionPath, *regionPathAfterHop)
 		*regionPathAfterHop = ans
-	}(&regionPathAfterHop)
+	}(&regionPathAfterHop, errChan)
 
 	wg.Wait()
+
+	if len(errChan) != 0 {
+		return models.OutData{}, <-errChan
+	}
 
 	for _, regionID := range regionPathAfterHop {
 		for _, microCategoryID := range microCategoryPathAfterHop {

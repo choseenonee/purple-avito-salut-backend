@@ -5,6 +5,10 @@ definitions:
         type: integer
       region_id:
         type: integer
+      segment_ids:
+        items:
+          type: integer
+        type: array
     type: object
   models.OutData:
     properties:
@@ -16,11 +20,39 @@ definitions:
         type: integer
       region_id:
         type: integer
+      segment_ids:
+        items:
+          type: integer
+        type: array
     type: object
-  models.UpdateMatrixName:
+  models.PreparedStorage:
     properties:
-      name:
+      baseline:
         type: string
+      discount:
+        items:
+          type: string
+        type: array
+      discount_hops:
+        additionalProperties:
+          additionalProperties:
+            additionalProperties:
+              type: integer
+            type: object
+          type: object
+        type: object
+      micro_category_hops:
+        items:
+          type: integer
+        type: array
+      region_hops:
+        items:
+          type: integer
+        type: array
+      segment_discount:
+        additionalProperties:
+          type: string
+        type: object
     type: object
 info:
   contact: {}
@@ -57,22 +89,17 @@ paths:
             type: object
       tags:
       - price
-  /recalculate:
-    put:
+  /update_current_storage:
+    post:
       consumes:
       - application/json
-      parameters:
-      - description: Get price
-        in: body
-        name: name
-        required: true
-        schema:
-          $ref: '#/definitions/models.UpdateMatrixName'
       produces:
       - application/json
       responses:
-        "204":
-          description: Successfully recalculated and updated price information
+        "200":
+          description: Successfully responsed with price
+          schema:
+            type: string
         "400":
           description: Invalid input
           schema:
@@ -86,5 +113,37 @@ paths:
               type: string
             type: object
       tags:
-      - price
+      - storage
+  /update_next_storage:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Get price
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/models.PreparedStorage'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully responsed with price
+          schema:
+            type: string
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - storage
 swagger: "2.0"

@@ -65,7 +65,46 @@ const docTemplate = `{
                 }
             }
         },
-        "/recalculate": {
+        "/update_current_storage": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "storage"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully responsed with price",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/update_next_storage": {
             "put": {
                 "consumes": [
                     "application/json"
@@ -74,22 +113,25 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "price"
+                    "storage"
                 ],
                 "parameters": [
                     {
                         "description": "Get price",
-                        "name": "name",
+                        "name": "data",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UpdateMatrixName"
+                            "$ref": "#/definitions/models.PreparedStorage"
                         }
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Successfully recalculated and updated price information"
+                    "200": {
+                        "description": "Successfully responsed with price",
+                        "schema": {
+                            "type": "string"
+                        }
                     },
                     "400": {
                         "description": "Invalid input",
@@ -122,6 +164,12 @@ const docTemplate = `{
                 },
                 "region_id": {
                     "type": "integer"
+                },
+                "segment_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },
@@ -139,14 +187,56 @@ const docTemplate = `{
                 },
                 "region_id": {
                     "type": "integer"
+                },
+                "segment_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },
-        "models.UpdateMatrixName": {
+        "models.PreparedStorage": {
             "type": "object",
             "properties": {
-                "name": {
+                "baseline": {
                     "type": "string"
+                },
+                "discount": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "discount_hops": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                },
+                "micro_category_hops": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "region_hops": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "segment_discount": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         }
@@ -163,6 +253,8 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
+	LeftDelim:        "{{",
+	RightDelim:       "}}",
 }
 
 func init() {

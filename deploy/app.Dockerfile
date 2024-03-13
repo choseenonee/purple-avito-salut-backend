@@ -17,7 +17,7 @@ COPY .. .
 RUN go build -o ./cmd/main ./cmd/main.go && chmod +x ./cmd/main
 
 # Экспортируем порт, который будет использовать приложение
-EXPOSE 8080
+EXPOSE 8000
 
 # меняем workdir для корректной работы go logs
 WORKDIR /app/cmd

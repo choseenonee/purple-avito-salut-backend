@@ -25,7 +25,28 @@ definitions:
       timestamp:
         type: string
     type: object
-  models.MatrixDifference:
+  models.MatrixDifferenceRequest:
+    properties:
+      added:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+      deleted:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+      is_baseline:
+        type: boolean
+      new_name:
+        type: string
+      parent_name:
+        type: string
+      updated:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+    type: object
+  models.MatrixDifferenceResponse:
     properties:
       added:
         items:
@@ -110,6 +131,38 @@ paths:
         name: data
         required: true
         schema:
+          $ref: '#/definitions/models.MatrixDifferenceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully created matrix
+          schema:
+            type: string
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - matrix
+  /matrix/create_no_parent:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Matrix create
+        in: body
+        name: data
+        required: true
+        schema:
           $ref: '#/definitions/swagger.MatrixBase'
       produces:
       - application/json
@@ -156,7 +209,7 @@ paths:
           description: Found matrices differences
           schema:
             items:
-              $ref: '#/definitions/models.MatrixDifference'
+              $ref: '#/definitions/models.MatrixDifferenceResponse'
             type: array
         "400":
           description: Invalid input, missing matrix names

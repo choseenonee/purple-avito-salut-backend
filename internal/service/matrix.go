@@ -15,8 +15,11 @@ func InitMatrixService(matrixRepo repository.Matrix) Matrix {
 	return matrixService{matrixRepo: matrixRepo}
 }
 
-func (m matrixService) Create(ctx context.Context, matrix models.MatrixBase) (string, error) {
+func (m matrixService) CreateMatrixWithoutParent(ctx context.Context, matrix models.MatrixBase) (string, error) {
 	// TODO: implement validation maybe???
+	return m.matrixRepo.CreateMatrixWithoutParent(ctx, matrix)
+}
+func (m matrixService) CreateMatrix(ctx context.Context, matrix models.MatrixDifferenceRequest) (string, error) {
 	return m.matrixRepo.CreateMatrix(ctx, matrix)
 }
 
@@ -24,7 +27,7 @@ func (m matrixService) GetHistory(ctx context.Context, data models.GetHistoryMat
 	return m.matrixRepo.GetHistory(ctx, data)
 }
 
-func (m matrixService) GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error) {
+func (m matrixService) GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifferenceResponse, error) {
 	return m.matrixRepo.GetDifference(ctx, matrixName1, matrixName2)
 }
 

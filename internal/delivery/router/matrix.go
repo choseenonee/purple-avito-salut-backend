@@ -20,11 +20,12 @@ func RegisterMatrixUser(r *gin.Engine, db *sqlx.DB, logger *log.Logs, tracer tra
 	matrixService := service.InitMatrixService(matrixRepo)
 	matrixHandlers := handlers.InitMatrixHandler(matrixService, tracer)
 
+	matrixRouter.POST("/create", matrixHandlers.CreateMatrix)
+	matrixRouter.POST("/create_no_parent", matrixHandlers.CreateMatrixWithoutParent)
 	matrixRouter.GET("/get_difference", matrixHandlers.GetDifference)
 	matrixRouter.GET("/get_matrices_by_duration", matrixHandlers.GetMatricesByDuration)
 	matrixRouter.GET("/get_matrix", matrixHandlers.GetMatrix)
 	matrixRouter.GET("/get_matrix_pages", matrixHandlers.GetMatrixPages)
-	matrixRouter.POST("/create", matrixHandlers.CreateMatrix)
 	matrixRouter.PUT("/get_history", matrixHandlers.GetHistory)
 	matrixRouter.PUT("/get_tendency", matrixHandlers.GetTendency)
 

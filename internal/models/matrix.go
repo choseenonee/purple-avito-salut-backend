@@ -19,10 +19,19 @@ type MatrixBase struct {
 	Data       []MatrixNode `json:"data"`
 }
 
-type MatrixDifference struct {
+type MatrixDifferenceResponse struct {
 	Updated [][2]MatrixNode `json:"updated"`
 	Added   []MatrixNode    `json:"added"`
 	Deleted []MatrixNode    `json:"deleted"`
+}
+
+type MatrixDifferenceRequest struct {
+	NewName    string       `json:"new_name"`
+	ParentName string       `json:"parent_name"`
+	IsBaseLine bool         `json:"is_baseline"`
+	Updated    []MatrixNode `json:"updated"`
+	Added      []MatrixNode `json:"added"`
+	Deleted    []MatrixNode `json:"deleted"`
 }
 
 type GetDifferenceByMatricesNames struct {
@@ -30,7 +39,6 @@ type GetDifferenceByMatricesNames struct {
 	Name2 string `json:"to_name"`
 }
 
-// на бэке вставляем таймстамп
 type Matrix struct {
 	MatrixBase
 	TimeStamp time.Time `json:"timestamp"`

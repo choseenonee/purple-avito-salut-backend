@@ -27,7 +27,7 @@ func InitMatrixHandler(service service.Matrix, tracer trace.Tracer) MatrixHandle
 	}
 }
 
-// CreateMatrix @Summary Create matrix
+// CreateMatrixWithoutParent @Summary Create matrix without parent
 // @Tags matrix
 // @Accept  json
 // @Produce  json
@@ -35,8 +35,8 @@ func InitMatrixHandler(service service.Matrix, tracer trace.Tracer) MatrixHandle
 // @Success 200 {object} string "Successfully created matrix"
 // @Failure 400 {object} map[string]string "Invalid input"
 // @Failure 500 {object} map[string]string "Internal server error"
-// @Router /matrix/create [post]
-func (m MatrixHandler) CreateMatrix(c *gin.Context) {
+// @Router /matrix/create_no_parent [post]
+func (m MatrixHandler) CreateMatrixWithoutParent(c *gin.Context) {
 	ctx, span := m.tracer.Start(c.Request.Context(), tracing.CreateMatrix)
 	defer span.End()
 
@@ -53,7 +53,49 @@ func (m MatrixHandler) CreateMatrix(c *gin.Context) {
 	}
 
 	span.AddEvent(tracing.CallToService)
-	name, err := m.service.Create(ctx, matrixCreate)
+	name, err := m.service.CreateMatrixWithoutParent(ctx, matrixCreate)
+	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.CreateMatrixType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	span.SetStatus(codes.Ok, tracing.SuccessfulCompleting)
+
+	c.JSON(http.StatusOK, name)
+}
+
+// CreateMatrix @Summary Create matrix with parent
+// @Tags matrix
+// @Accept  json
+// @Produce  json
+// @Param data body models.MatrixDifferenceRequest true "Matrix create"
+// @Success 200 {object} string "Successfully created matrix"
+// @Failure 400 {object} map[string]string "Invalid input"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /matrix/create [post]
+func (m MatrixHandler) CreateMatrix(c *gin.Context) {
+	ctx, span := m.tracer.Start(c.Request.Context(), tracing.CreateMatrix)
+	defer span.End()
+
+	var matrixCreate models.MatrixDifferenceRequest
+
+	if err := c.ShouldBindJSON(&matrixCreate); err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.BindType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
+
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	span.AddEvent(tracing.CallToService)
+	name, err := m.service.CreateMatrix(ctx, matrixCreate)
 	if err != nil {
 		span.RecordError(err, trace.WithAttributes(
 			attribute.String(tracing.CreateMatrixType, err.Error())),
@@ -116,7 +158,7 @@ func (m MatrixHandler) GetHistory(c *gin.Context) {
 // @Produce  json
 // @Param from_name query string true "Name of the first matrix"
 // @Param to_name query string true "Name of the second matrix"
-// @Success 200 {object} []models.MatrixDifference "Found matrices differences"
+// @Success 200 {object} []models.MatrixDifferenceResponse "Found matrices differences"
 // @Failure 400 {object} map[string]string "Invalid input, missing matrix names"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /matrix/get_difference [get]

@@ -16,7 +16,7 @@ const (
 const (
 	CallToService = "Call to service"
 
-	CreateMatrix          = "Create Matrix"
+	CreateMatrix          = "CreateMatrixWithoutParent Matrix"
 	GetHistory            = "Get history"
 	GetDifference         = "Get difference"
 	GetTendency           = "Get tendency"

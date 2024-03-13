@@ -92,13 +92,13 @@ func TestMatrixRepoCreateGetDifference(t *testing.T) {
 		},
 	}
 
-	name, err := repo.CreateMatrix(context.Background(), data1)
+	name, err := repo.CreateMatrixWithoutParent(context.Background(), data1)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(name)
 
-	name, err = repo.CreateMatrix(context.Background(), data2)
+	name, err = repo.CreateMatrixWithoutParent(context.Background(), data2)
 	if err != nil {
 		panic(err)
 	}

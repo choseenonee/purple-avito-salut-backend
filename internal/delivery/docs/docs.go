@@ -33,6 +33,56 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
+                            "$ref": "#/definitions/models.MatrixDifferenceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully created matrix",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/matrix/create_no_parent": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matrix"
+                ],
+                "parameters": [
+                    {
+                        "description": "Matrix create",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
                             "$ref": "#/definitions/swagger.MatrixBase"
                         }
                     }
@@ -99,7 +149,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.MatrixDifference"
+                                "$ref": "#/definitions/models.MatrixDifferenceResponse"
                             }
                         }
                     },
@@ -440,7 +490,39 @@ const docTemplate = `{
                 }
             }
         },
-        "models.MatrixDifference": {
+        "models.MatrixDifferenceRequest": {
+            "type": "object",
+            "properties": {
+                "added": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MatrixNode"
+                    }
+                },
+                "deleted": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MatrixNode"
+                    }
+                },
+                "is_baseline": {
+                    "type": "boolean"
+                },
+                "new_name": {
+                    "type": "string"
+                },
+                "parent_name": {
+                    "type": "string"
+                },
+                "updated": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MatrixNode"
+                    }
+                }
+            }
+        },
+        "models.MatrixDifferenceResponse": {
             "type": "object",
             "properties": {
                 "added": {

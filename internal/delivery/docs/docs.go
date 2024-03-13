@@ -295,6 +295,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/matrix/get_matrix_pages": {
+            "get": {
+                "description": "Retrieves a specific page of matrices based on the matrix name provided.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "matrix"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The name of the matrix for which to retrieve the page",
+                        "name": "matrix_name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the total number of pages for the specified matrix",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input, missing or incorrect matrix_name parameter",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error occurred while retrieving the matrix page",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/matrix/get_tendency": {
             "put": {
                 "description": "Retrieves price difference in time span",

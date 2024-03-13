@@ -36,6 +36,10 @@ func (m matrixService) GetMatrix(ctx context.Context, matrixName string, page in
 	return m.matrixRepo.GetMatrix(ctx, matrixName, page)
 }
 
+func (m matrixService) GetMatrixPages(ctx context.Context, matrixName string) (int, error) {
+	return m.matrixRepo.GetMatrixPages(ctx, matrixName)
+}
+
 func (m matrixService) GetMatricesByDuration(ctx context.Context, timeStart, timeEnd time.Time) ([]models.Matrix, error) {
 	return m.matrixRepo.GetMatricesByDuration(ctx, timeStart, timeEnd)
 }

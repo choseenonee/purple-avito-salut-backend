@@ -263,6 +263,47 @@ func (m MatrixHandler) GetMatrix(c *gin.Context) {
 	c.JSON(http.StatusOK, matrices)
 }
 
+// GetMatrixPages @Summary Retrieve a page of matrices
+// @Description Retrieves a specific page of matrices based on the matrix name provided.
+// @Tags matrix
+// @Accept  json
+// @Produce  json
+// @Param matrix_name query string true "The name of the matrix for which to retrieve the page"
+// @Success 200 {object} int "Successfully retrieved the total number of pages for the specified matrix"
+// @Failure 400 {object} map[string]string "Invalid input, missing or incorrect matrix_name parameter"
+// @Failure 500 {object} map[string]string "Internal server error occurred while retrieving the matrix page"
+// @Router /matrix/get_matrix_pages [get]
+func (m MatrixHandler) GetMatrixPages(c *gin.Context) {
+	ctx, span := m.tracer.Start(c.Request.Context(), tracing.GetMatrixPages)
+	defer span.End()
+
+	matrixName, ok := c.GetQuery("matrix_name")
+	if !ok {
+		er := fmt.Errorf("bad `matrix_name` query provided")
+		span.RecordError(er, trace.WithAttributes(
+			attribute.String(tracing.QueryType, er.Error())),
+		)
+		span.SetStatus(codes.Error, er.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "matrixName not provided"})
+		return
+	}
+
+	span.AddEvent(tracing.CallToService)
+	matrices, err := m.service.GetMatrixPages(ctx, matrixName)
+	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.GetMatrixPagesType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	span.SetStatus(codes.Ok, tracing.SuccessfulCompleting)
+
+	c.JSON(http.StatusOK, matrices)
+}
+
 // GetMatricesByDuration @Summary Get matrices by duration
 // @Description Retrieves matrices that fall within the specified time duration.
 // @Tags matrix

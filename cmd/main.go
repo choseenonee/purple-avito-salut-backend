@@ -1,17 +1,42 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/spf13/viper"
+	"io"
+	"net/http"
 	"template/internal/delivery"
 	"template/internal/delivery/middleware"
+	"template/internal/models"
 	"template/pkg/config"
 	"template/pkg/database"
 	"template/pkg/log"
 	"template/pkg/trace"
 )
 
-const serviceName = "gin"
+func getStorage(hostIP, hostPort string) *models.PreparedStorage {
+	url := fmt.Sprintf("%v:%v/get_prepared_storage", hostIP, hostPort)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+
+	// Читаем тело ответа
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil
+	}
+
+	// Десериализуем JSON в структуру
+	var preparedStorage models.PreparedStorage
+	if err := json.Unmarshal(body, &preparedStorage); err != nil {
+		return nil
+	}
+
+	return &preparedStorage
+}
 
 func main() {
 	logger, loggerInfoFile, loggerErrorFile := log.InitLogger()
@@ -22,6 +47,8 @@ func main() {
 
 	config.InitConfig()
 	logger.Info("Config Initialized")
+
+	serviceName := viper.GetString(config.ServiceName)
 
 	jaegerURL := fmt.Sprintf("http://%v:%v/api/traces", viper.GetString(config.JaegerHost), viper.GetString(config.JaegerPort))
 	tracer := trace.InitTracer(jaegerURL, serviceName)
@@ -34,12 +61,20 @@ func main() {
 
 	mdw := middleware.InitMiddleware(logger)
 
+	initStorage := getStorage(viper.GetString(config.FatherPort), viper.GetString(config.FatherPort))
+
+	storage := models.Storage{
+		Current: initStorage,
+		Next:    nil,
+	}
+
 	delivery.Start(
 		db,
 		rdb,
 		logger,
 		tracer,
 		mdw,
+		storage,
 	)
 
 }

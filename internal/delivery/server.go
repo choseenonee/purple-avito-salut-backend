@@ -8,6 +8,7 @@ import (
 	"template/internal/delivery/docs"
 	"template/internal/delivery/handlers"
 	"template/internal/delivery/middleware"
+	"template/internal/models"
 	"template/internal/repository"
 	"template/internal/service"
 	"template/pkg/database"
@@ -17,7 +18,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func Start(db *sqlx.DB, rdb database.Session, logger *log.Logs, tracer trace.Tracer, middleware middleware.Middleware) {
+func Start(db *sqlx.DB, rdb database.Session, logger *log.Logs, tracer trace.Tracer, middleware middleware.Middleware, initStorage models.Storage) {
 	r := gin.Default()
 
 	docs.SwaggerInfo.BasePath = "/"
@@ -28,12 +29,13 @@ func Start(db *sqlx.DB, rdb database.Session, logger *log.Logs, tracer trace.Tra
 	repo := repository.InitRepository(db)
 
 	// FIXME: matrix name чета сделать надо...
-	serv := service.InitService(repo, rdb, "baseline_1710203720")
+	serv := service.InitService(repo, initStorage)
 	update := service.InitUpdate(repo, rdb)
 
 	handler := handlers.InitHandler(serv, update, tracer)
 
 	r.PUT("/price", handler.GetPrice)
+	r.PUT("/update_storage", handler.UpdateStorage)
 	r.PUT("/recalculate", handler.RecalculateRedis)
 
 	if err := r.Run("0.0.0.0:8080"); err != nil {

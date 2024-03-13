@@ -52,6 +52,32 @@ func (h Handler) GetPrice(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// GetPrice @Summary Update storage
+// @Tags storeage
+// @Accept  json
+// @Produce  json
+// @Param data body models.PreparedStorage true "Get price"
+// @Success 200 {object} string "Successfully responsed with price"
+// @Failure 400 {object} map[string]string "Invalid input"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /update_storage [put]
+func (h Handler) UpdateStorage(c *gin.Context) {
+	_, span := h.tracer.Start(c.Request.Context(), UpdateStorage)
+	defer span.End()
+
+	var newStorage models.PreparedStorage
+
+	if err := c.ShouldBindJSON(&newStorage); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	span.AddEvent(CallToService)
+	h.service.UpdateNextStorage(&newStorage)
+
+	c.JSON(http.StatusOK, gin.H{"detail": "successfully!!!"})
+}
+
 // RecalculateRedis @Summary recalculates hops and updates price information
 // @Tags price
 // @Accept  json

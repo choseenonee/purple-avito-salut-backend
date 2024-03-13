@@ -23,6 +23,9 @@ const (
 	JaegerHost        = "JAEGER_HOST"
 	JaegerPort        = "JAEGER_PORT"
 	MaxOnPage         = "MAX_ON_PAGE"
+	ServiceName       = "SERVICE_NAME"
+	FatherHost        = "FATHER_PORT"
+	FatherPort        = "FATHER_PORT"
 )
 
 func InitConfig() {

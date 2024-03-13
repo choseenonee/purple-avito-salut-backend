@@ -11,7 +11,7 @@ import (
 	"template/pkg/trace"
 )
 
-const serviceName = "gin"
+const serviceName = "admin-panel"
 
 func main() {
 	logger, loggerInfoFile, loggerErrorFile := log.InitLogger()

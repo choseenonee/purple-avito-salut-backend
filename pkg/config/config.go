@@ -23,6 +23,8 @@ const (
 	JaegerHost        = "JAEGER_HOST"
 	JaegerPort        = "JAEGER_PORT"
 	MaxOnPage         = "MAX_ON_PAGE"
+	ChildPortOne      = "CHILD_HOST_1"
+	ChildPortTwo      = "CHILD_HOST_2"
 )
 
 func InitConfig() {

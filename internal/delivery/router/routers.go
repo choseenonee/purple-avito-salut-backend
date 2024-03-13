@@ -7,7 +7,7 @@ import (
 	"template/pkg/log"
 )
 
-func InitRouting(r *gin.Engine, db *sqlx.DB, logger *log.Logs, tracer trace.Tracer) {
+func InitRouting(r *gin.Engine, db *sqlx.DB, logger *log.Logs, tracer trace.Tracer, urls []string) {
 	_ = RegisterMatrixUser(r, db, logger, tracer)
-	_ = RegisterStorageRouter(r, db, logger, tracer)
+	_ = RegisterStorageRouter(r, db, logger, tracer, urls)
 }

@@ -14,7 +14,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func Start(db *sqlx.DB, logger *log.Logs, tracer trace.Tracer, middleware middleware.Middleware) {
+func Start(db *sqlx.DB, logger *log.Logs, tracer trace.Tracer, middleware middleware.Middleware, urls []string) {
 	r := gin.Default()
 
 	docs.SwaggerInfo.BasePath = "/"
@@ -22,7 +22,7 @@ func Start(db *sqlx.DB, logger *log.Logs, tracer trace.Tracer, middleware middle
 
 	r.Use(middleware.CORSMiddleware())
 
-	router.InitRouting(r, db, logger, tracer)
+	router.InitRouting(r, db, logger, tracer, urls)
 
 	if err := r.Run("0.0.0.0:8080"); err != nil {
 		panic(fmt.Sprintf("error running client: %v", err.Error()))

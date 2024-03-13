@@ -32,11 +32,14 @@ func main() {
 
 	mdw := middleware.InitMiddleware(logger)
 
+	urls := []string{viper.GetString(config.ChildPortOne), viper.GetString(config.ChildPortTwo)}
+
 	delivery.Start(
 		db,
 		logger,
 		tracer,
 		mdw,
+		urls,
 	)
 
 }

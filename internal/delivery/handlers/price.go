@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/trace"
 	"net/http"
@@ -9,14 +10,16 @@ import (
 )
 
 type UpdateHandler struct {
-	service service.Update
-	tracer  trace.Tracer
+	service      service.Update
+	tracer       trace.Tracer
+	priceApiURLs []string
 }
 
-func InitMUpdateHandler(service service.Update, tracer trace.Tracer) UpdateHandler {
+func InitMUpdateHandler(service service.Update, tracer trace.Tracer, priceApiURLs []string) UpdateHandler {
 	return UpdateHandler{
-		service: service,
-		tracer:  tracer,
+		service:      service,
+		tracer:       tracer,
+		priceApiURLs: priceApiURLs,
 	}
 }
 
@@ -46,7 +49,6 @@ func (m UpdateHandler) PrepareAndSendStorage(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	// TODO: change url
 
 	discountMatrixNames := make([]string, 0, len(preparedStorage.DiscountMatrices))
 
@@ -54,19 +56,22 @@ func (m UpdateHandler) PrepareAndSendStorage(c *gin.Context) {
 		discountMatrixNames = append(discountMatrixNames, i.Name)
 	}
 
-	err = m.service.SendUpdatedStorage("http://localhost:8000", models.PreparedStorageSend{
-		StorageBase: models.StorageBase{
-			BaseLineMatrixName:  preparedStorage.BaseLineMatrix.Name,
-			DiscountMatrixNames: discountMatrixNames,
-		},
-		MicroCategoryHops: preparedStorage.MicroCategoryHops,
-		RegionHops:        preparedStorage.RegionHops,
-		DiscountHops:      preparedStorage.DiscountHops,
-		SegmentDiscount:   preparedStorage.SegmentDiscount,
-	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	//TODO: change hardcoded url
+	for _, url := range m.priceApiURLs {
+		err = m.service.SendUpdatedStorage(fmt.Sprintf("http://%v:8000", url), models.PreparedStorageSend{
+			StorageBase: models.StorageBase{
+				BaseLineMatrixName:  preparedStorage.BaseLineMatrix.Name,
+				DiscountMatrixNames: discountMatrixNames,
+			},
+			MicroCategoryHops: preparedStorage.MicroCategoryHops,
+			RegionHops:        preparedStorage.RegionHops,
+			DiscountHops:      preparedStorage.DiscountHops,
+			SegmentDiscount:   preparedStorage.SegmentDiscount,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"detail": "successfully!"})
@@ -85,15 +90,12 @@ func (m UpdateHandler) SwitchStorageToNext(c *gin.Context) {
 	defer span.End()
 
 	span.AddEvent(CallToService)
-	err := m.service.SwitchStorage("http://localhost:8000")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	for _, url := range m.priceApiURLs {
+		err := m.service.SwitchStorage(fmt.Sprintf("http://%v:8000", url))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"detail": "successfully!!!"})

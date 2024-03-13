@@ -12,13 +12,13 @@ import (
 	"template/pkg/log"
 )
 
-func RegisterStorageRouter(r *gin.Engine, db *sqlx.DB, logger *log.Logs, tracer trace.Tracer) *gin.RouterGroup {
+func RegisterStorageRouter(r *gin.Engine, db *sqlx.DB, logger *log.Logs, tracer trace.Tracer, urls []string) *gin.RouterGroup {
 	storageRouter := r.Group("/storage")
 
 	matrixRepo := repository.InitMatrixRepo(db, viper.GetInt(config.MaxOnPage))
 
 	matrixService := service.InitUpdateService(matrixRepo)
-	storageUpdateHandlers := handlers.InitMUpdateHandler(matrixService, tracer)
+	storageUpdateHandlers := handlers.InitMUpdateHandler(matrixService, tracer, urls)
 
 	storageRouter.POST("/send", storageUpdateHandlers.PrepareAndSendStorage)
 	storageRouter.POST("/switch", storageUpdateHandlers.SwitchStorageToNext)

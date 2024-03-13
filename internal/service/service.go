@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"sort"
-	"sync"
 	"template/internal/models"
 	"template/internal/repository"
 )
@@ -153,27 +152,35 @@ func (s *serviceStruct) GetPrice(ctx context.Context, inData models.InData) (mod
 		return models.OutData{}, err
 	}
 
-	var wg sync.WaitGroup
-
 	microCategoryPathAfterHop := make([]int, 0, 5)
 
-	wg.Add(1)
-	go func(microCategoryPathAfterHop *[]int) {
-		defer wg.Done()
-		ans := s.calculateMicroCategoryPathAfterHops(microCategoryPath, *microCategoryPathAfterHop)
-		*microCategoryPathAfterHop = ans
-	}(&microCategoryPathAfterHop)
+	microCategoryPathAfterHop = s.calculateMicroCategoryPathAfterHops(microCategoryPath, microCategoryPathAfterHop)
 
 	regionPathAfterHop := make([]int, 0, 5)
 
-	wg.Add(1)
-	go func(regionPathAfterHop *[]int) {
-		defer wg.Done()
-		ans := s.calculateRegionPathAfterHops(regionPath, *regionPathAfterHop)
-		*regionPathAfterHop = ans
-	}(&regionPathAfterHop)
+	regionPathAfterHop = s.calculateRegionPathAfterHops(regionPath, regionPathAfterHop)
 
-	wg.Wait()
+	//var wg sync.WaitGroup
+	//
+	//microCategoryPathAfterHop := make([]int, 0, 5)
+	//
+	//wg.Add(1)
+	//go func(microCategoryPathAfterHop *[]int) {
+	//	defer wg.Done()
+	//	ans := s.calculateMicroCategoryPathAfterHops(microCategoryPath, *microCategoryPathAfterHop)
+	//	*microCategoryPathAfterHop = ans
+	//}(&microCategoryPathAfterHop)
+	//
+	//regionPathAfterHop := make([]int, 0, 5)
+	//
+	//wg.Add(1)
+	//go func(regionPathAfterHop *[]int) {
+	//	defer wg.Done()
+	//	ans := s.calculateRegionPathAfterHops(regionPath, *regionPathAfterHop)
+	//	*regionPathAfterHop = ans
+	//}(&regionPathAfterHop)
+	//
+	//wg.Wait()
 
 	for _, regionID := range regionPathAfterHop {
 		for _, microCategoryID := range microCategoryPathAfterHop {

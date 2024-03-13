@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"sort"
+	"sync"
 	"template/internal/models"
 	"template/internal/repository"
 )
@@ -124,7 +126,7 @@ var userSegments = map[int][]int{
 }
 
 func (s *serviceStruct) GetPrice(ctx context.Context, inData models.InData) (models.OutData, error) {
-	var price int
+	//var price int
 
 	segments, ok := userSegments[inData.UserID]
 	if ok {
@@ -142,49 +144,50 @@ func (s *serviceStruct) GetPrice(ctx context.Context, inData models.InData) (mod
 		}
 	}
 
-	microCategoryPath, err := s.repo.GetMicroCategoryPath(ctx, inData.MicroCategoryID)
-	if err != nil {
-		return models.OutData{}, err
-	}
-
-	regionPath, err := s.repo.GetRegionPath(ctx, inData.RegionID)
-	if err != nil {
-		return models.OutData{}, err
-	}
-
-	microCategoryPathAfterHop := make([]int, 0, 5)
-
-	microCategoryPathAfterHop = s.calculateMicroCategoryPathAfterHops(microCategoryPath, microCategoryPathAfterHop)
-
-	regionPathAfterHop := make([]int, 0, 5)
-
-	regionPathAfterHop = s.calculateRegionPathAfterHops(regionPath, regionPathAfterHop)
-
-	//var wg sync.WaitGroup
-	//
 	//microCategoryPathAfterHop := make([]int, 0, 5)
 	//
-	//wg.Add(1)
-	//go func(microCategoryPathAfterHop *[]int) {
-	//	defer wg.Done()
-	//	ans := s.calculateMicroCategoryPathAfterHops(microCategoryPath, *microCategoryPathAfterHop)
-	//	*microCategoryPathAfterHop = ans
-	//}(&microCategoryPathAfterHop)
+	//microCategoryPathAfterHop = s.calculateMicroCategoryPathAfterHops(microCategoryPath, microCategoryPathAfterHop)
 	//
 	//regionPathAfterHop := make([]int, 0, 5)
 	//
-	//wg.Add(1)
-	//go func(regionPathAfterHop *[]int) {
-	//	defer wg.Done()
-	//	ans := s.calculateRegionPathAfterHops(regionPath, *regionPathAfterHop)
-	//	*regionPathAfterHop = ans
-	//}(&regionPathAfterHop)
-	//
-	//wg.Wait()
+	//regionPathAfterHop = s.calculateRegionPathAfterHops(regionPath, regionPathAfterHop)
+
+	var wg sync.WaitGroup
+
+	microCategoryPathAfterHop := make([]int, 0, 5)
+
+	wg.Add(1)
+	go func(microCategoryPathAfterHop *[]int) {
+		defer wg.Done()
+		microCategoryPath, err := s.repo.GetMicroCategoryPath(ctx, inData.MicroCategoryID)
+		if err != nil {
+			return
+		}
+		ans := s.calculateMicroCategoryPathAfterHops(microCategoryPath, *microCategoryPathAfterHop)
+		*microCategoryPathAfterHop = ans
+	}(&microCategoryPathAfterHop)
+
+	regionPathAfterHop := make([]int, 0, 5)
+
+	wg.Add(1)
+	go func(regionPathAfterHop *[]int) {
+		defer wg.Done()
+		regionPath, err := s.repo.GetRegionPath(ctx, inData.RegionID)
+		if err != nil {
+			return
+		}
+		ans := s.calculateRegionPathAfterHops(regionPath, *regionPathAfterHop)
+		*regionPathAfterHop = ans
+	}(&regionPathAfterHop)
+
+	wg.Wait()
 
 	for _, regionID := range regionPathAfterHop {
 		for _, microCategoryID := range microCategoryPathAfterHop {
-			price, err = s.repo.GetPriceFromBaseLine(ctx, microCategoryID, regionID, s.storage.Current.BaseLineMatrixName)
+			price, err := s.repo.GetPriceFromBaseLine(ctx, microCategoryID, regionID, s.storage.Current.BaseLineMatrixName)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return models.OutData{}, err
+			}
 			if price != 0 {
 				return models.OutData{
 					MatrixName: s.storage.Current.BaseLineMatrixName,

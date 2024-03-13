@@ -17,4 +17,7 @@ type Matrix interface {
 
 type Update interface {
 	PrepareStorage(ctx context.Context, baseLineMatrixName string, discountMatrixNames []string) (models.PreparedStorage, error)
+	SendUpdatedStorage(url string, storage models.PreparedStorageSend) error
+	SwitchStorage(url string) error
+	GetCurrentStorage() models.PreparedStorageSend
 }

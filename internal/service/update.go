@@ -1,29 +1,22 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"template/internal/models"
 	"template/internal/repository"
 )
 
 type updateService struct {
-	matrixRepo repository.Matrix
+	matrixRepo     repository.Matrix
+	currentStorage *models.PreparedStorageSend
 }
 
 func InitUpdateService(matrixRepo repository.Matrix) Update {
-	return updateService{matrixRepo: matrixRepo}
-}
-
-// mock user segments and segment discount matrices
-
-var userSegments = map[int]int{
-	1: 100,
-	2: 200,
-}
-
-var segmentMatrices = map[int]string{
-	100: "discount_0",
-	200: "discount_1",
+	return &updateService{matrixRepo: matrixRepo}
 }
 
 func recursive(index int, in [][4]int, ans []int, lastWithPrice int, lastIndex int, isFirst bool) bool {
@@ -76,8 +69,15 @@ func calculateDiscountMatrix(matrices []models.Matrix, discountHops map[string]m
 	}
 }
 
-func (u updateService) PrepareStorage(ctx context.Context, baseLineMatrixName string, discountMatrixNames []string) (models.PreparedStorage, error) {
+var segmentMatrices = map[int]string{
+	100: "discount_0",
+	200: "discount_1",
+}
+
+func (u *updateService) PrepareStorage(ctx context.Context, baseLineMatrixName string, discountMatrixNames []string) (models.PreparedStorage, error) {
 	var preparedStorage models.PreparedStorage
+
+	preparedStorage.SegmentDiscount = segmentMatrices
 
 	baseLineMatrix, err := u.matrixRepo.GetMatrix(ctx, baseLineMatrixName, -1)
 	if err != nil {
@@ -118,4 +118,72 @@ func (u updateService) PrepareStorage(ctx context.Context, baseLineMatrixName st
 	preparedStorage.DiscountHops = newMap
 
 	return preparedStorage, nil
+}
+
+func (u *updateService) SendUpdatedStorage(url string, storage models.PreparedStorageSend) error {
+	jsonData, err := json.Marshal(storage)
+	if err != nil {
+		return err
+	}
+
+	url = fmt.Sprintf("%v/update_next_storage", url)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("error response status: %v", resp.StatusCode)
+	}
+
+	u.currentStorage = &models.PreparedStorageSend{
+		StorageBase: models.StorageBase{
+			BaseLineMatrixName:  storage.BaseLineMatrixName,
+			DiscountMatrixNames: storage.DiscountMatrixNames,
+		},
+		MicroCategoryHops: storage.MicroCategoryHops,
+		RegionHops:        storage.RegionHops,
+		DiscountHops:      storage.DiscountHops,
+		SegmentDiscount:   storage.SegmentDiscount,
+	}
+
+	return nil
+}
+
+func (u *updateService) SwitchStorage(url string) error {
+	url = fmt.Sprintf("%v/update_current_storage", url)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(nil))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("error response status: %v", resp.StatusCode)
+	}
+	return nil
+}
+
+func (u *updateService) GetCurrentStorage() models.PreparedStorageSend {
+	if u.currentStorage == nil {
+		return models.PreparedStorageSend{}
+	}
+	return *u.currentStorage
 }

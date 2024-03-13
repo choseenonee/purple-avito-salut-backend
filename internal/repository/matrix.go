@@ -388,6 +388,8 @@ func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, page int) 
 		return models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 
+	matrix.Name = matrixName
+
 	return matrix, nil
 }
 

@@ -9,4 +9,5 @@ import (
 
 func InitRouting(r *gin.Engine, db *sqlx.DB, logger *log.Logs, tracer trace.Tracer) {
 	_ = RegisterMatrixUser(r, db, logger, tracer)
+	_ = RegisterStorageRouter(r, db, logger, tracer)
 }

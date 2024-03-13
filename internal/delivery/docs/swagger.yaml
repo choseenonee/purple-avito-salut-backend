@@ -51,12 +51,50 @@ definitions:
       region_id:
         type: integer
     type: object
+  models.PreparedStorageSend:
+    properties:
+      baseline:
+        type: string
+      discount:
+        items:
+          type: string
+        type: array
+      discount_hops:
+        additionalProperties:
+          additionalProperties:
+            additionalProperties:
+              type: integer
+            type: object
+          type: object
+        type: object
+      micro_category_hops:
+        items:
+          type: integer
+        type: array
+      region_hops:
+        items:
+          type: integer
+        type: array
+      segment_discount:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
   models.ResponseTendencyNode:
     properties:
       price:
         type: integer
       timestamp:
         type: string
+    type: object
+  models.StorageBase:
+    properties:
+      baseline:
+        type: string
+      discount:
+        items:
+          type: string
+        type: array
     type: object
   null.String:
     properties:
@@ -319,4 +357,86 @@ paths:
             type: object
       tags:
       - matrix
+  /storage/current:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully switched matrix
+          schema:
+            $ref: '#/definitions/models.PreparedStorageSend'
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - storage
+  /storage/send:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Storage create
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/models.StorageBase'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully created matrix
+          schema:
+            type: string
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - storage
+  /storage/switch:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully switched matrix
+          schema:
+            type: string
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - storage
 swagger: "2.0"

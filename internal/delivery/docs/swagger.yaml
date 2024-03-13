@@ -5,10 +5,8 @@ definitions:
         type: integer
       region_id:
         type: integer
-      segment_ids:
-        items:
-          type: integer
-        type: array
+      user_id:
+        type: integer
     type: object
   models.OutData:
     properties:
@@ -20,10 +18,8 @@ definitions:
         type: integer
       region_id:
         type: integer
-      segment_ids:
-        items:
-          type: integer
-        type: array
+      user_id:
+        type: integer
     type: object
   models.PreparedStorage:
     properties:

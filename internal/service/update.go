@@ -17,8 +17,8 @@ type updateStruct struct {
 	session database.Session
 }
 
-func InitUpdate(repo repository.Repository, session database.Session) Update {
-	return updateStruct{repo: repo, session: session}
+func InitUpdate(repo repository.Repository) Update {
+	return updateStruct{repo: repo}
 }
 
 func recursive(index int, in [][4]int, ans []int, lastWithPrice int, lastIndex int, isFirst bool) bool {

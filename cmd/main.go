@@ -16,7 +16,7 @@ import (
 )
 
 func getStorage(hostIP, hostPort string) *models.PreparedStorage {
-	url := fmt.Sprintf("%v:%v/get_prepared_storage", hostIP, hostPort)
+	url := fmt.Sprintf("http://%v:%v/storage/current", hostIP, hostPort)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil
@@ -26,6 +26,15 @@ func getStorage(hostIP, hostPort string) *models.PreparedStorage {
 	// Читаем тело ответа
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		return nil
+	}
+
+	var str = string(body)
+
+	_ = str
+
+	if resp.StatusCode != 200 {
+		fmt.Printf("error on initing storage %v", resp.StatusCode)
 		return nil
 	}
 
@@ -57,11 +66,11 @@ func main() {
 	db := database.GetDB()
 	logger.Info("Database Initialized")
 
-	rdb := database.InitRedisSession()
+	//rdb := database.InitRedisSession()
 
 	mdw := middleware.InitMiddleware(logger)
 
-	initStorage := getStorage(viper.GetString(config.FatherPort), viper.GetString(config.FatherPort))
+	initStorage := getStorage(viper.GetString(config.FatherHost), viper.GetString(config.FatherPort))
 
 	storage := models.Storage{
 		Current: initStorage,
@@ -70,7 +79,6 @@ func main() {
 
 	delivery.Start(
 		db,
-		rdb,
 		logger,
 		tracer,
 		mdw,

@@ -154,11 +154,8 @@
                 "region_id": {
                     "type": "integer"
                 },
-                "segment_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -177,11 +174,8 @@
                 "region_id": {
                     "type": "integer"
                 },
-                "segment_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },

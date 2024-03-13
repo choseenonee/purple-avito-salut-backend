@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sort"
 	"sync"
 	"template/internal/models"
@@ -30,10 +29,10 @@ type serviceStruct struct {
 //}
 
 func InitService(repo repository.Repository, storage models.Storage) Service {
-	return serviceStruct{repo: repo, storage: storage}
+	return &serviceStruct{repo: repo, storage: storage}
 }
 
-func (s serviceStruct) InitStorage(newStorage *models.PreparedStorage) error {
+func (s *serviceStruct) InitStorage(newStorage *models.PreparedStorage) error {
 	if s.storage.Current != nil {
 		return errors.New("initing already existing storage")
 	}
@@ -41,11 +40,11 @@ func (s serviceStruct) InitStorage(newStorage *models.PreparedStorage) error {
 	return nil
 }
 
-func (s serviceStruct) UpdateNextStorage(newStorage *models.PreparedStorage) {
+func (s *serviceStruct) UpdateNextStorage(newStorage *models.PreparedStorage) {
 	s.storage.Next = newStorage
 }
 
-func (s serviceStruct) UpdateCurrentStorage() error {
+func (s *serviceStruct) UpdateCurrentStorage() error {
 	if s.storage.Next == nil {
 		return errors.New("there is no next storage to update current")
 	}
@@ -54,19 +53,42 @@ func (s serviceStruct) UpdateCurrentStorage() error {
 	return nil
 }
 
-func (s serviceStruct) calculatePathAfterHops(path []int, ans []int) {
+func (s *serviceStruct) calculateMicroCategoryPathAfterHops(path []int, ans []int) []int {
 	var index int
 	var hop = path[0]
-	for _, i := range path {
+	for d, i := range path {
 		if i == hop {
-			index = s.storage.Current.MicroCategoryHops[i]
+			index = s.storage.Current.MicroCategoryHops[i-1]
 			if index != i {
 				hop = index
 			} else {
 				ans = append(ans, i)
+				if d+1 < len(path) {
+					hop = path[d+1]
+				}
 			}
 		}
 	}
+	return ans
+}
+
+func (s *serviceStruct) calculateRegionPathAfterHops(path []int, ans []int) []int {
+	var index int
+	var hop = path[0]
+	for d, i := range path {
+		if i == hop {
+			index = s.storage.Current.RegionHops[i-1]
+			if index != i {
+				hop = index
+			} else {
+				ans = append(ans, i)
+				if d+1 < len(path) {
+					hop = path[d+1]
+				}
+			}
+		}
+	}
+	return ans
 }
 
 func getDeepValue(matrixName string, microCategoryID, regionID int, from map[string]map[int]map[int]int) (int, bool) {
@@ -82,31 +104,43 @@ func getDeepValue(matrixName string, microCategoryID, regionID int, from map[str
 	return price, ok
 }
 
-func (s serviceStruct) getPriceFromDiscount(segmentIDs []int, microcategoryID int, regionID int) (int, bool) {
+func (s *serviceStruct) getPriceFromDiscount(segmentIDs []int, microcategoryID int, regionID int) (int, string, bool) {
 	sort.Ints(segmentIDs)
 	var discountMatrixName string
 	for _, i := range segmentIDs {
 		discountMatrixName = s.storage.Current.SegmentDiscount[i]
-		return getDeepValue(discountMatrixName, microcategoryID, regionID, s.storage.Current.DiscountHops)
+		price, ok := getDeepValue(discountMatrixName, microcategoryID, regionID, s.storage.Current.DiscountHops)
+		if ok {
+			return price, discountMatrixName, ok
+		}
 	}
 	//TODO: реализовать когда будет понятно что там с сегментированием
-	return 0, false
+	return 0, "", false
 }
 
-func (s serviceStruct) GetPrice(ctx context.Context, inData models.InData) (models.OutData, error) {
-	var price int
-	var found bool
+var userSegments = map[int][]int{
+	1: {100, 200},
+	2: {200},
+	3: {},
+}
 
-	price, found = s.getPriceFromDiscount(inData.SegmentIDs, inData.MicroCategoryID, inData.RegionID)
-	if found {
-		return models.OutData{
-			MatrixName: s.storage.Current.BaseLineMatrixName,
-			Price:      price,
-			InData: models.InData{
-				MicroCategoryID: inData.MicroCategoryID,
-				RegionID:        inData.RegionID,
-			},
-		}, nil
+func (s *serviceStruct) GetPrice(ctx context.Context, inData models.InData) (models.OutData, error) {
+	var price int
+
+	segments, ok := userSegments[inData.UserID]
+	if ok {
+		price, discountMatrixName, found := s.getPriceFromDiscount(segments, inData.MicroCategoryID, inData.RegionID)
+		if found {
+			return models.OutData{
+				MatrixName: discountMatrixName,
+				Price:      price,
+				InData: models.InData{
+					MicroCategoryID: inData.MicroCategoryID,
+					RegionID:        inData.RegionID,
+					UserID:          inData.UserID,
+				},
+			}, nil
+		}
 	}
 
 	microCategoryPath, err := s.repo.GetMicroCategoryPath(ctx, inData.MicroCategoryID)
@@ -119,27 +153,27 @@ func (s serviceStruct) GetPrice(ctx context.Context, inData models.InData) (mode
 		return models.OutData{}, err
 	}
 
-	fmt.Println(microCategoryPath)
-	fmt.Println(regionPath)
-
 	var wg sync.WaitGroup
 
-	var microCategoryPathAfterHop []int
+	microCategoryPathAfterHop := make([]int, 0, 5)
 
 	wg.Add(1)
-	go func() {
+	go func(microCategoryPathAfterHop *[]int) {
 		defer wg.Done()
-		microCategoryPathAfterHop = make([]int, 0, len(microCategoryPath))
-		s.calculatePathAfterHops(microCategoryPath, microCategoryPathAfterHop)
-	}()
+		ans := s.calculateMicroCategoryPathAfterHops(microCategoryPath, *microCategoryPathAfterHop)
+		*microCategoryPathAfterHop = ans
+	}(&microCategoryPathAfterHop)
 
-	var regionPathAfterHop []int
+	regionPathAfterHop := make([]int, 0, 5)
 
 	wg.Add(1)
-	go func() {
-		regionPathAfterHop = make([]int, 0, len(regionPath))
-		s.calculatePathAfterHops(regionPath, regionPathAfterHop)
-	}()
+	go func(regionPathAfterHop *[]int) {
+		defer wg.Done()
+		ans := s.calculateRegionPathAfterHops(regionPath, *regionPathAfterHop)
+		*regionPathAfterHop = ans
+	}(&regionPathAfterHop)
+
+	wg.Wait()
 
 	for _, regionID := range regionPathAfterHop {
 		for _, microCategoryID := range microCategoryPathAfterHop {
@@ -151,6 +185,7 @@ func (s serviceStruct) GetPrice(ctx context.Context, inData models.InData) (mode
 					InData: models.InData{
 						MicroCategoryID: microCategoryID,
 						RegionID:        regionID,
+						UserID:          inData.UserID,
 					},
 				}, nil
 			}
@@ -160,10 +195,10 @@ func (s serviceStruct) GetPrice(ctx context.Context, inData models.InData) (mode
 	return models.OutData{}, errors.New("wtf how i did not find price?)))")
 }
 
-func (s serviceStruct) GetMicroCategoryPath(ctx context.Context, microCategoryID int) ([]int, error) {
+func (s *serviceStruct) GetMicroCategoryPath(ctx context.Context, microCategoryID int) ([]int, error) {
 	return s.repo.GetMicroCategoryPath(ctx, microCategoryID)
 }
 
-func (s serviceStruct) GetRegionPath(ctx context.Context, microCategoryID int) ([]int, error) {
+func (s *serviceStruct) GetRegionPath(ctx context.Context, microCategoryID int) ([]int, error) {
 	return s.repo.GetRegionPath(ctx, microCategoryID)
 }

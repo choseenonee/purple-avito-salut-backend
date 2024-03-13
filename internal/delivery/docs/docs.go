@@ -165,11 +165,8 @@ const docTemplate = `{
                 "region_id": {
                     "type": "integer"
                 },
-                "segment_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -188,11 +185,8 @@ const docTemplate = `{
                 "region_id": {
                     "type": "integer"
                 },
-                "segment_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -253,8 +247,6 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-	LeftDelim:        "{{",
-	RightDelim:       "}}",
 }
 
 func init() {

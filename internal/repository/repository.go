@@ -178,6 +178,8 @@ func (r repositoryStruct) GetMicroCategoryPath(ctx context.Context, microCategor
 		return []int{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 
+	path = append(path, 1)
+
 	return path, nil
 }
 
@@ -227,6 +229,8 @@ func (r repositoryStruct) GetRegionPath(ctx context.Context, microCategoryID int
 	if err := rows.Err(); err != nil {
 		return []int{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
+
+	path = append(path, 1)
 
 	return path, nil
 }

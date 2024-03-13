@@ -11,14 +11,13 @@ import (
 	"template/internal/models"
 	"template/internal/repository"
 	"template/internal/service"
-	"template/pkg/database"
 	"template/pkg/log"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func Start(db *sqlx.DB, rdb database.Session, logger *log.Logs, tracer trace.Tracer, middleware middleware.Middleware, initStorage models.Storage) {
+func Start(db *sqlx.DB, logger *log.Logs, tracer trace.Tracer, middleware middleware.Middleware, initStorage models.Storage) {
 	r := gin.Default()
 
 	docs.SwaggerInfo.BasePath = "/"
@@ -30,15 +29,15 @@ func Start(db *sqlx.DB, rdb database.Session, logger *log.Logs, tracer trace.Tra
 
 	// FIXME: matrix name чета сделать надо...
 	serv := service.InitService(repo, initStorage)
-	update := service.InitUpdate(repo, rdb)
+	update := service.InitUpdate(repo)
 
 	handler := handlers.InitHandler(serv, update, tracer)
 
 	r.PUT("/price", handler.GetPrice)
-	r.PUT("/update_storage", handler.UpdateStorage)
-	r.PUT("/recalculate", handler.RecalculateRedis)
+	r.POST("/update_current_storage", handler.UpdateCurrentStorage)
+	r.POST("/update_next_storage", handler.UpdateNextStorage)
 
-	if err := r.Run("0.0.0.0:8080"); err != nil {
+	if err := r.Run("0.0.0.0:8000"); err != nil {
 		panic(fmt.Sprintf("error running client: %v", err.Error()))
 	}
 }

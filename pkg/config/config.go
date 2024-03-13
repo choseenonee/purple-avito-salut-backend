@@ -24,7 +24,7 @@ const (
 	JaegerPort        = "JAEGER_PORT"
 	MaxOnPage         = "MAX_ON_PAGE"
 	ServiceName       = "SERVICE_NAME"
-	FatherHost        = "FATHER_PORT"
+	FatherHost        = "FATHER_HOST"
 	FatherPort        = "FATHER_PORT"
 )
 

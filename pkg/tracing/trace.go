@@ -1,4 +1,4 @@
-package trace
+package tracing
 
 import (
 	"fmt"
@@ -15,7 +15,6 @@ func NewJaegerExporter(url string) (tracesdk.SpanExporter, error) {
 }
 
 func NewTraceProvider(exp tracesdk.SpanExporter, ServiceName string) (*tracesdk.TracerProvider, error) {
-	// Ensure default SDK resources and the required service name are set.
 	r, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
@@ -30,7 +29,6 @@ func NewTraceProvider(exp tracesdk.SpanExporter, ServiceName string) (*tracesdk.
 	return tracesdk.NewTracerProvider(
 		tracesdk.WithBatcher(exp),
 		tracesdk.WithResource(r),
-		//tracesdk.WithSampler(tracesdk.Sample)
 	), nil
 }
 

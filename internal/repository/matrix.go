@@ -524,8 +524,6 @@ func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, mc, rg nul
 		offset := (page - 1) * m.MaxOnPage
 		selectQuery += fmt.Sprintf(" ORDER BY (microcategory_id, region_id) DESC OFFSET $%d LIMIT $%d", len(queryParams)+1, len(queryParams)+2)
 		queryParams = append(queryParams, offset, m.MaxOnPage)
-		fmt.Println(selectQuery)
-		fmt.Println(queryParams...)
 		rows, err = m.db.QueryxContext(ctx, selectQuery, queryParams...)
 
 		if err != nil {
@@ -536,7 +534,6 @@ func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, mc, rg nul
 	defer rows.Close()
 
 	for rows.Next() {
-		fmt.Println("Asdadadadad")
 		var row models.MatrixNode
 
 		err := rows.Scan(&matrix.Name, &row.MicroCategoryID, &row.RegionID, &row.Price, &matrix.TimeStamp, &matrix.IsBaseLine, &matrix.ParentName)
@@ -550,8 +547,6 @@ func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, mc, rg nul
 	if err := rows.Err(); err != nil {
 		return models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
-
-	fmt.Println(matrix)
 
 	matrix.Name = matrixName
 

@@ -11,7 +11,7 @@ import (
 func initDB() *sqlx.DB {
 	connString := fmt.Sprintf(
 		"user=%v password=%v host=%v port=%v dbname=%v sslmode=disable",
-		"postgres", "postgres", "localhost", "5432", "postgres",
+		"purple", "purple123", "localhost", "5432", "purple_hack",
 	)
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
@@ -167,7 +167,7 @@ func TestMicroLocationsRelationsLoad(t *testing.T) {
 
 	for i := 1; i < 25; i++ {
 		for _, val := range data[i] {
-			_, err = tx.ExecContext(context.Background(), `INSERT INTO postgres.public.relationships_regions (parent_id, child_id) VALUES ($1, $2);`,
+			_, err = tx.ExecContext(context.Background(), `INSERT INTO relationships_regions (parent_id, child_id) VALUES ($1, $2);`,
 				i, val)
 			if err != nil {
 				_ = tx.Rollback()
@@ -215,7 +215,7 @@ func TestBaseLineMatrixLoad(t *testing.T) {
 		}
 	}
 
-	_, err = tx.ExecContext(context.Background(), `INSERT INTO postgres.public.matrix_metadata 
+	_, err = tx.ExecContext(context.Background(), `INSERT INTO matrix_metadata 
     (matrix_name, timestamp, is_baseline, parent_matrix_name) VALUES ('baseline_test_metadata', $1, 'true', $2);`, time.Now(), nil)
 
 	err = tx.Commit()
@@ -257,7 +257,7 @@ func TestDiscountMatrixLoad(t *testing.T) {
 			}
 		}
 
-		_, err = tx.ExecContext(context.Background(), `INSERT INTO postgres.public.matrix_metadata 
+		_, err = tx.ExecContext(context.Background(), `INSERT INTO matrix_metadata 
     	(matrix_name, timestamp, is_baseline, parent_matrix_name) VALUES ($3, $1, 'false', $2);`, time.Now(), nil, fmt.Sprintf("discount_%v", d))
 	}
 

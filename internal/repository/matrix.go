@@ -266,6 +266,19 @@ func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixDiffer
 	return matrixName, nil
 }
 
+func (m matrixRepo) GetMatrixPages(ctx context.Context, matrixName string) (int, error) {
+	var count int
+
+	getMatrixPagesQuery := "SELECT COUNT(*) FROM matrix WHERE name=$1"
+
+	err := m.db.QueryRowxContext(ctx, getMatrixPagesQuery, matrixName).Scan(&count)
+	if err != nil {
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+	}
+
+	return (count + m.MaxOnPage - 1) / m.MaxOnPage, nil
+}
+
 func (m matrixRepo) GetHistory(ctx context.Context, data models.GetHistoryMatrix) ([]models.ResponseHistoryMatrix, error) {
 	var matrixes []models.ResponseHistoryMatrix
 
@@ -480,16 +493,26 @@ func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, page int) 
 
 	var selectQuery string
 
-	selectQuery = `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
-				   JOIN matrix_metadata mm ON matrix.name = mm.matrix_name
-				   WHERE name = $1
-				   ORDER BY (microcategory_id, region_id) DESC OFFSET $2 LIMIT $3;`
+	if page == -1 {
+		selectQuery = `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
+					JOIN matrix_metadata mm ON matrix.name = mm.matrix_name
+                    WHERE name = $1
+                    ORDER BY (microcategory_id, region_id) DESC`
+	} else {
+		selectQuery = `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
+					JOIN matrix_metadata mm ON matrix.name = mm.matrix_name
+                    WHERE name = $1
+                    ORDER BY (microcategory_id, region_id) DESC OFFSET $2 LIMIT $3;`
+	}
 
 	var rows *sqlx.Rows
 	var err error
 
-	rows, err = m.db.QueryxContext(ctx, selectQuery, matrixName, (page-1)*m.MaxOnPage, m.MaxOnPage)
-
+	if page == -1 {
+		rows, err = m.db.QueryxContext(ctx, selectQuery, matrixName)
+	} else {
+		rows, err = m.db.QueryxContext(ctx, selectQuery, matrixName, (page-1)*m.MaxOnPage, m.MaxOnPage)
+	}
 	if err != nil {
 		return models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
 	}
@@ -513,19 +536,6 @@ func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, page int) 
 	matrix.Name = matrixName
 
 	return matrix, nil
-}
-
-func (m matrixRepo) GetMatrixPages(ctx context.Context, matrixName string) (int, error) {
-	var count int
-
-	getMatrixPagesQuery := "SELECT COUNT(*) FROM matrix WHERE name=$1"
-
-	err := m.db.QueryRowxContext(ctx, getMatrixPagesQuery, matrixName).Scan(&count)
-	if err != nil {
-		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
-	}
-
-	return (count + m.MaxOnPage - 1) / m.MaxOnPage, nil
 }
 
 func (m matrixRepo) GetMatricesByDuration(ctx context.Context, timeStart, timeEnd time.Time) ([]models.Matrix, error) {

@@ -19,6 +19,7 @@ func (m matrixService) CreateMatrixWithoutParent(ctx context.Context, matrix mod
 	// TODO: implement validation maybe???
 	return m.matrixRepo.CreateMatrixWithoutParent(ctx, matrix)
 }
+
 func (m matrixService) CreateMatrix(ctx context.Context, matrix models.MatrixDifferenceRequest) (string, error) {
 	return m.matrixRepo.CreateMatrix(ctx, matrix)
 }

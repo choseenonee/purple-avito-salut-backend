@@ -1,9 +1,10 @@
 package tracing
 
 const (
-	BindType       = "error.bind"
-	QueryType      = "error.query"
-	TimeFormatType = "error.query-time-format"
+	BindType        = "error.bind"
+	QueryType       = "error.query"
+	TimeFormatType  = "error.query-time-format"
+	MakeRequestType = "error.make-request"
 
 	CreateMatrixType   = "error.create-matrix"
 	GetHistoryType     = "error.get-history"
@@ -11,6 +12,8 @@ const (
 	GetTendencyType    = "error.get-tendency"
 	GetMatrixType      = "error.get-matrix"
 	GetMatrixPagesType = "error.get-matrix-pages"
+
+	PrepareAndSendStorageType = "error.prepare-storage"
 )
 
 const (
@@ -23,6 +26,10 @@ const (
 	GetMatrix             = "Get matrix"
 	GetMatrixPages        = "Get matrix pages"
 	GetMatricesByDuration = "Get matrices by duration"
+
+	PrepareAndSendStorage = "Prepare and send storage"
+	SwitchStorageToNext   = "Switch storage to next"
+	GetCurrentStorage     = "Get current storage"
 )
 
 const (

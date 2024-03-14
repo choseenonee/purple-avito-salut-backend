@@ -1,13 +1,17 @@
 package handlers
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"net/http"
 	"strconv"
 	"template/internal/models"
 	_ "template/internal/models/swagger"
 	"template/internal/service"
+	"template/pkg/tracing"
 	"time"
 )
 
@@ -23,7 +27,7 @@ func InitMatrixHandler(service service.Matrix, tracer trace.Tracer) MatrixHandle
 	}
 }
 
-// CreateMatrix @Summary Create matrix
+// CreateMatrixWithoutParent @Summary Create matrix without parent
 // @Tags matrix
 // @Accept  json
 // @Produce  json
@@ -31,29 +35,78 @@ func InitMatrixHandler(service service.Matrix, tracer trace.Tracer) MatrixHandle
 // @Success 200 {object} string "Successfully created matrix"
 // @Failure 400 {object} map[string]string "Invalid input"
 // @Failure 500 {object} map[string]string "Internal server error"
-// @Router /matrix/create [post]
-func (m MatrixHandler) CreateMatrix(c *gin.Context) {
-	ctx, span := m.tracer.Start(c.Request.Context(), CreateMatrix)
+// @Router /matrix/create_no_parent [post]
+func (m MatrixHandler) CreateMatrixWithoutParent(c *gin.Context) {
+	ctx, span := m.tracer.Start(c.Request.Context(), tracing.CreateMatrix)
 	defer span.End()
 
 	var matrixCreate models.MatrixBase
 
 	if err := c.ShouldBindJSON(&matrixCreate); err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.BindType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
+
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	span.AddEvent(CallToService)
-	name, err := m.service.Create(ctx, matrixCreate)
+	span.AddEvent(tracing.CallToService)
+	name, err := m.service.CreateMatrixWithoutParent(ctx, matrixCreate)
 	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.CreateMatrixType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	span.SetStatus(codes.Ok, tracing.SuccessfulCompleting)
+
+	c.JSON(http.StatusOK, name)
+}
+
+// CreateMatrix @Summary Create matrix with parent
+// @Tags matrix
+// @Accept  json
+// @Produce  json
+// @Param data body models.MatrixDifferenceRequest true "Matrix create"
+// @Success 200 {object} string "Successfully created matrix"
+// @Failure 400 {object} map[string]string "Invalid input"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /matrix/create [post]
+func (m MatrixHandler) CreateMatrix(c *gin.Context) {
+	ctx, span := m.tracer.Start(c.Request.Context(), tracing.CreateMatrix)
+	defer span.End()
+
+	var matrixCreate models.MatrixDifferenceRequest
+
+	if err := c.ShouldBindJSON(&matrixCreate); err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.BindType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
+
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	span.AddEvent(tracing.CallToService)
+	name, err := m.service.CreateMatrix(ctx, matrixCreate)
 	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.CreateMatrixType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	span.SetStatus(codes.Ok, tracing.SuccessfulCompleting)
 
 	c.JSON(http.StatusOK, name)
 }
@@ -70,20 +123,30 @@ func (m MatrixHandler) CreateMatrix(c *gin.Context) {
 func (m MatrixHandler) GetHistory(c *gin.Context) {
 	var getHistoryMatrix models.GetHistoryMatrix
 
-	ctx, span := m.tracer.Start(c.Request.Context(), GetHistory)
+	ctx, span := m.tracer.Start(c.Request.Context(), tracing.GetHistory)
 	defer span.End()
 
 	if err := c.ShouldBindJSON(&getHistoryMatrix); err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.BindType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	span.AddEvent(CallToService)
+	span.AddEvent(tracing.CallToService)
 	matrices, err := m.service.GetHistory(ctx, getHistoryMatrix)
 	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.GetHistoryType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	span.SetStatus(codes.Ok, tracing.SuccessfulCompleting)
 
 	c.JSON(http.StatusOK, matrices)
 }
@@ -95,31 +158,47 @@ func (m MatrixHandler) GetHistory(c *gin.Context) {
 // @Produce  json
 // @Param from_name query string true "Name of the first matrix"
 // @Param to_name query string true "Name of the second matrix"
-// @Success 200 {object} []models.MatrixDifference "Found matrices differences"
+// @Success 200 {object} []models.MatrixDifferenceResponse "Found matrices differences"
 // @Failure 400 {object} map[string]string "Invalid input, missing matrix names"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /matrix/get_difference [get]
 func (m MatrixHandler) GetDifference(c *gin.Context) {
-	ctx, span := m.tracer.Start(c.Request.Context(), GetHistory)
+	ctx, span := m.tracer.Start(c.Request.Context(), tracing.GetDifference)
 	defer span.End()
 
 	matrixName1, ok := c.GetQuery("from_name")
 	if !ok {
+		er := fmt.Errorf("bad `from_name` query provided")
+		span.RecordError(er, trace.WithAttributes(
+			attribute.String(tracing.QueryType, er.Error())),
+		)
+		span.SetStatus(codes.Error, er.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "matrixName1 not provided"})
 		return
 	}
 	matrixName2, ok := c.GetQuery("to_name")
 	if !ok {
+		er := fmt.Errorf("bad `to_name` query provided")
+		span.RecordError(er, trace.WithAttributes(
+			attribute.String(tracing.QueryType, er.Error())),
+		)
+		span.SetStatus(codes.Error, er.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "matrixName2 not provided"})
 		return
 	}
 
-	span.AddEvent(CallToService)
+	span.AddEvent(tracing.CallToService)
 	matrices, err := m.service.GetDifference(ctx, matrixName1, matrixName2)
 	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.GetDifferenceType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	span.SetStatus(codes.Ok, tracing.SuccessfulCompleting)
 
 	c.JSON(http.StatusOK, matrices)
 }
@@ -137,20 +216,30 @@ func (m MatrixHandler) GetDifference(c *gin.Context) {
 func (m MatrixHandler) GetTendency(c *gin.Context) {
 	var data models.GetTendencyNode
 
-	ctx, span := m.tracer.Start(c.Request.Context(), GetHistory)
+	ctx, span := m.tracer.Start(c.Request.Context(), tracing.GetTendency)
 	defer span.End()
 
 	if err := c.ShouldBindJSON(&data); err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.BindType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	span.AddEvent(CallToService)
+	span.AddEvent(tracing.CallToService)
 	tendency, err := m.service.GetTendency(ctx, data)
 	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.GetTendencyType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	span.SetStatus(codes.Ok, tracing.SuccessfulCompleting)
 
 	c.JSON(http.StatusOK, tendency)
 }
@@ -167,31 +256,92 @@ func (m MatrixHandler) GetTendency(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /matrix/get_matrix [get]
 func (m MatrixHandler) GetMatrix(c *gin.Context) {
-	ctx, span := m.tracer.Start(c.Request.Context(), GetHistory)
+	ctx, span := m.tracer.Start(c.Request.Context(), tracing.GetMatrix)
 	defer span.End()
 
 	matrixName, ok := c.GetQuery("matrix_name")
 	if !ok {
+		er := fmt.Errorf("bad `matrix_name` query provided")
+		span.RecordError(er, trace.WithAttributes(
+			attribute.String(tracing.QueryType, er.Error())),
+		)
+		span.SetStatus(codes.Error, er.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "matrixName not provided"})
 		return
 	}
 	pageStr, ok := c.GetQuery("page")
 	if !ok {
+		er := fmt.Errorf("bad `page` query provided")
+		span.RecordError(er, trace.WithAttributes(
+			attribute.String(tracing.QueryType, er.Error())),
+		)
+		span.SetStatus(codes.Error, er.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "pageStr not provided"})
 		return
 	}
 	page, err := strconv.Atoi(pageStr)
 	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.QueryType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "page can't interpret as int"})
 		return
 	}
 
-	span.AddEvent(CallToService)
+	span.AddEvent(tracing.CallToService)
 	matrices, err := m.service.GetMatrix(ctx, matrixName, page)
 	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.GetMatrixType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	span.SetStatus(codes.Ok, tracing.SuccessfulCompleting)
+
+	c.JSON(http.StatusOK, matrices)
+}
+
+// GetMatrixPages @Summary Retrieve a page of matrices
+// @Description Retrieves a specific page of matrices based on the matrix name provided.
+// @Tags matrix
+// @Accept  json
+// @Produce  json
+// @Param matrix_name query string true "The name of the matrix for which to retrieve the page"
+// @Success 200 {object} int "Successfully retrieved the total number of pages for the specified matrix"
+// @Failure 400 {object} map[string]string "Invalid input, missing or incorrect matrix_name parameter"
+// @Failure 500 {object} map[string]string "Internal server error occurred while retrieving the matrix page"
+// @Router /matrix/get_matrix_pages [get]
+func (m MatrixHandler) GetMatrixPages(c *gin.Context) {
+	ctx, span := m.tracer.Start(c.Request.Context(), tracing.GetMatrixPages)
+	defer span.End()
+
+	matrixName, ok := c.GetQuery("matrix_name")
+	if !ok {
+		er := fmt.Errorf("bad `matrix_name` query provided")
+		span.RecordError(er, trace.WithAttributes(
+			attribute.String(tracing.QueryType, er.Error())),
+		)
+		span.SetStatus(codes.Error, er.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "matrixName not provided"})
+		return
+	}
+
+	span.AddEvent(tracing.CallToService)
+	matrices, err := m.service.GetMatrixPages(ctx, matrixName)
+	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.GetMatrixPagesType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	span.SetStatus(codes.Ok, tracing.SuccessfulCompleting)
 
 	c.JSON(http.StatusOK, matrices)
 }
@@ -208,38 +358,62 @@ func (m MatrixHandler) GetMatrix(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /matrix/get_matrices_by_duration [get]
 func (m MatrixHandler) GetMatricesByDuration(c *gin.Context) {
-	ctx, span := m.tracer.Start(c.Request.Context(), "GetMatricesByDuration")
+	ctx, span := m.tracer.Start(c.Request.Context(), tracing.GetMatricesByDuration)
 	defer span.End()
 
 	timeFromStr, ok := c.GetQuery("time_from")
 	if !ok {
+		er := fmt.Errorf("bad `time_from` query provided")
+		span.RecordError(er, trace.WithAttributes(
+			attribute.String(tracing.QueryType, er.Error())),
+		)
+		span.SetStatus(codes.Error, er.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "timeFrom not provided"})
 		return
 	}
 	timeToStr, ok := c.GetQuery("time_to")
 	if !ok {
+		er := fmt.Errorf("bad `time_to` query provided")
+		span.RecordError(er, trace.WithAttributes(
+			attribute.String(tracing.QueryType, er.Error())),
+		)
+		span.SetStatus(codes.Error, er.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "timeTo not provided"})
 		return
 	}
 
 	timeFrom, err := time.Parse(time.RFC3339, timeFromStr)
 	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.TimeFormatType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid timeFrom format"})
 		return
 	}
 
 	timeTo, err := time.Parse(time.RFC3339, timeToStr)
 	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.TimeFormatType, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid timeTo format"})
 		return
 	}
 
-	span.AddEvent("CallToService")
+	span.AddEvent(tracing.CallToService)
 	matrices, err := m.service.GetMatricesByDuration(ctx, timeFrom, timeTo)
 	if err != nil {
+		span.RecordError(err, trace.WithAttributes(
+			attribute.String(tracing.GetMatricesByDuration, err.Error())),
+		)
+		span.SetStatus(codes.Error, err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	span.SetStatus(codes.Ok, tracing.SuccessfulCompleting)
 
 	c.JSON(http.StatusOK, matrices)
 }

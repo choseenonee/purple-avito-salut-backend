@@ -23,7 +23,7 @@ func InitMatrixRepo(db *sqlx.DB, MaxOnPage int) Matrix {
 	return matrixRepo{MaxOnPage: MaxOnPage, db: db}
 }
 
-func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) (string, error) {
+func (m matrixRepo) CreateMatrixWithoutParent(ctx context.Context, matrix models.MatrixBase) (string, error) {
 	tx, err := m.db.Beginx()
 	if err != nil {
 		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.TransactionErr, Err: err})
@@ -31,29 +31,6 @@ func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) 
 
 	timestamp := time.Now()
 	matrixName := fmt.Sprintf("%s_%d", matrix.Name, timestamp.Unix())
-	if matrix.ParentName.Valid {
-		var parentNameExists = false
-		parentMatrixExistsQuery := `SELECT 1 FROM matrix WHERE name = $1;`
-		rows, err := tx.QueryContext(ctx, parentMatrixExistsQuery, matrix.ParentName)
-		if err != nil {
-			if rbErr := tx.Rollback(); rbErr != nil {
-				return "", customerr.ErrNormalizer(
-					customerr.ErrorPair{Message: customerr.ExecErr, Err: err},
-					customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
-				)
-			}
-			return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
-		}
-
-		defer rows.Close()
-
-		for rows.Next() {
-			parentNameExists = true
-		}
-		if !parentNameExists {
-			return "", customerr.ParentMatrixDontExist
-		}
-	}
 
 	valueString := make([]string, 0, len(matrix.Data))
 	valueArgs := make([]interface{}, 0, len(matrix.Data))
@@ -132,6 +109,174 @@ func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixBase) 
 	}
 
 	return matrixName, nil
+}
+
+func (m matrixRepo) CreateMatrix(ctx context.Context, matrix models.MatrixDifferenceRequest) (string, error) {
+	tx, err := m.db.Beginx()
+	if err != nil {
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.TransactionErr, Err: err})
+	}
+
+	timestamp := time.Now()
+	matrixName := fmt.Sprintf("%s_%d", matrix.NewName, timestamp.Unix())
+
+	var parentNameExists = false
+
+	parentMatrixExistsQuery := `SELECT 1 FROM matrix WHERE name = $1;`
+	rows, err := tx.QueryContext(ctx, parentMatrixExistsQuery, matrix.ParentName)
+	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.QueryRrr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
+			)
+		}
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		parentNameExists = true
+	}
+	if !parentNameExists {
+		return "", customerr.ParentMatrixDontExist
+	}
+
+	insertCopyQuery := `INSERT INTO matrix (name, microcategory_id, region_id, price)
+						SELECT $1, microcategory_id, region_id, price FROM matrix WHERE name = $2;`
+
+	_, err = tx.ExecContext(ctx, insertCopyQuery, matrixName, matrix.ParentName)
+	if err != nil {
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
+	}
+
+	for _, row := range matrix.Updated {
+		updateQuery := `UPDATE matrix SET price = $1
+              			WHERE name = $2 AND microcategory_id = $3 AND region_id = $4;`
+		res, err := tx.ExecContext(ctx, updateQuery, row.Price, matrixName, row.MicroCategoryID, row.RegionID)
+		if err != nil {
+			return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
+		}
+		count, err := res.RowsAffected()
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				return "", customerr.ErrNormalizer(
+					customerr.ErrorPair{Message: customerr.RowsErr, Err: err},
+					customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
+				)
+			}
+			return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+		}
+		if int(count) != 1 {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				return "", customerr.ErrNormalizer(
+					customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)},
+					customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
+				)
+			}
+			return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)})
+		}
+	}
+
+	for _, row := range matrix.Deleted {
+		deleteQuery := `DELETE FROM matrix
+						WHERE name = $1 AND microcategory_id = $2 AND region_id = $3;`
+		_, err = tx.ExecContext(ctx, deleteQuery, matrixName, row.MicroCategoryID, row.RegionID)
+		if err != nil {
+			return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
+		}
+	}
+
+	valueString := make([]string, 0, len(matrix.Added))
+	valueArgs := make([]interface{}, 0, len(matrix.Added))
+	for i, node := range matrix.Added {
+		valueString = append(valueString, fmt.Sprintf("($%d,$%d,$%d,$%d)", i*4+1, i*4+2, i*4+3, i*4+4))
+		valueArgs = append(valueArgs, matrixName, node.MicroCategoryID, node.RegionID, node.Price)
+	}
+
+	createRowsQuery := fmt.Sprintf("INSERT INTO matrix (name, microcategory_id, region_id, price) VALUES %s", strings.Join(valueString, ","))
+	res, err := tx.ExecContext(ctx, createRowsQuery, valueArgs...)
+	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.ExecErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
+			)
+		}
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.RowsErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
+			)
+		}
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+	}
+	if int(count) != len(matrix.Added) {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
+			)
+		}
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)})
+	}
+
+	createMetadataQuery := `INSERT INTO matrix_metadata (matrix_name, timestamp, is_baseline, parent_matrix_name)
+							VALUES ($1, $2, $3, $4);`
+
+	res, err = tx.ExecContext(ctx, createMetadataQuery, matrixName, timestamp, matrix.IsBaseLine, matrix.ParentName)
+	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.ExecErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
+			)
+		}
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ExecErr, Err: err})
+	}
+	count, err = res.RowsAffected()
+	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.RowsErr, Err: err},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
+			)
+		}
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+	}
+	if int(count) != 1 {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return "", customerr.ErrNormalizer(
+				customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)},
+				customerr.ErrorPair{Message: customerr.RollbackErr, Err: rbErr},
+			)
+		}
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: fmt.Errorf(customerr.CountErr, count)})
+	}
+
+	if err = tx.Commit(); err != nil {
+		return "", customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.CommitErr, Err: err})
+	}
+
+	return matrixName, nil
+}
+
+func (m matrixRepo) GetMatrixPages(ctx context.Context, matrixName string) (int, error) {
+	var count int
+
+	getMatrixPagesQuery := "SELECT COUNT(*) FROM matrix WHERE name=$1"
+
+	err := m.db.QueryRowxContext(ctx, getMatrixPagesQuery, matrixName).Scan(&count)
+	if err != nil {
+		return 0, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+	}
+
+	return (count + m.MaxOnPage - 1) / m.MaxOnPage, nil
 }
 
 func (m matrixRepo) GetHistory(ctx context.Context, data models.GetHistoryMatrix) ([]models.ResponseHistoryMatrix, error) {
@@ -251,8 +396,8 @@ func (m matrixRepo) GetPriceTendency(ctx context.Context, data models.GetTendenc
 	return responses, nil
 }
 
-func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifference, error) {
-	var difference models.MatrixDifference
+func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 string) (models.MatrixDifferenceResponse, error) {
+	var difference models.MatrixDifferenceResponse
 
 	deletedAddedQuery := `SELECT matrix.microcategory_id, matrix.region_id, matrix.price
 						  FROM matrix
@@ -274,7 +419,7 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 
 	deletedRows, err := m.db.QueryxContext(ctx, deletedAddedQuery, matrixName1, matrixName2)
 	if err != nil {
-		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+		return models.MatrixDifferenceResponse{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
 	}
 	defer deletedRows.Close()
 
@@ -283,19 +428,19 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 
 		err := deletedRows.Scan(&deletedRow.MicroCategoryID, &deletedRow.RegionID, &deletedRow.Price)
 		if err != nil {
-			return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+			return models.MatrixDifferenceResponse{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
 		}
 
 		difference.Deleted = append(difference.Deleted, deletedRow)
 	}
 
 	if err := deletedRows.Err(); err != nil {
-		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+		return models.MatrixDifferenceResponse{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 
 	addedRows, err := m.db.QueryxContext(ctx, deletedAddedQuery, matrixName2, matrixName1)
 	if err != nil {
-		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+		return models.MatrixDifferenceResponse{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
 	}
 	defer addedRows.Close()
 
@@ -304,19 +449,19 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 
 		err := addedRows.Scan(&addedRow.MicroCategoryID, &addedRow.RegionID, &addedRow.Price)
 		if err != nil {
-			return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+			return models.MatrixDifferenceResponse{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
 		}
 
 		difference.Added = append(difference.Added, addedRow)
 	}
 
 	if err := addedRows.Err(); err != nil {
-		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+		return models.MatrixDifferenceResponse{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 
 	updatedRows, err := m.db.QueryxContext(ctx, updatedQuery, matrixName1, matrixName2)
 	if err != nil {
-		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+		return models.MatrixDifferenceResponse{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
 	}
 	defer updatedRows.Close()
 
@@ -326,7 +471,7 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 
 		err := updatedRows.Scan(&rowBefore.MicroCategoryID, &rowBefore.RegionID, &rowBefore.Price, &rowAfter.Price)
 		if err != nil {
-			return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
+			return models.MatrixDifferenceResponse{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.ScanErr, Err: err})
 		}
 		rowAfter.MicroCategoryID = rowBefore.MicroCategoryID
 		rowAfter.RegionID = rowBefore.RegionID
@@ -337,7 +482,7 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 	}
 
 	if err := updatedRows.Err(); err != nil {
-		return models.MatrixDifference{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
+		return models.MatrixDifferenceResponse{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
 
 	return difference, nil
@@ -423,7 +568,7 @@ func (m matrixRepo) GetMatricesByDuration(ctx context.Context, timeStart, timeEn
 	return matrices, nil
 }
 
-func (r matrixRepo) GetRelationsWithPrice(ctx context.Context, matrixName string) ([][4]int, [][4]int, error) {
+func (m matrixRepo) GetRelationsWithPrice(ctx context.Context, matrixName string) ([][4]int, [][4]int, error) {
 	var categoryData [][4]int
 	var regionData [][4]int
 
@@ -437,7 +582,7 @@ func (r matrixRepo) GetRelationsWithPrice(ctx context.Context, matrixName string
 	LEFT JOIN matrix AS matrix_child ON rr.child_id = matrix_child.microcategory_id AND matrix_child.name = $1
 	ORDER BY rr.parent_id;`
 
-	rows, err := r.db.QueryContext(ctx, categoryQuery, matrixName)
+	rows, err := m.db.QueryContext(ctx, categoryQuery, matrixName)
 	if err != nil {
 		return [][4]int{}, [][4]int{}, nil
 	}
@@ -476,7 +621,7 @@ func (r matrixRepo) GetRelationsWithPrice(ctx context.Context, matrixName string
 	ORDER BY
 	rr.parent_id;`
 
-	rows, err = r.db.QueryContext(ctx, regionQuery, matrixName)
+	rows, err = m.db.QueryContext(ctx, regionQuery, matrixName)
 	if err != nil {
 		return [][4]int{}, [][4]int{}, nil
 	}

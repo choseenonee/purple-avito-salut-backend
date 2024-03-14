@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/guregu/null"
 	"net/http"
 	"template/internal/models"
 	"template/internal/repository"
@@ -76,10 +77,11 @@ var segmentMatrices = map[int]string{
 
 func (u *updateService) PrepareStorage(ctx context.Context, baseLineMatrixName string, discountMatrixNames []string) (models.PreparedStorage, error) {
 	var preparedStorage models.PreparedStorage
+	var mc, lc null.Int
 
 	preparedStorage.SegmentDiscount = segmentMatrices
 
-	baseLineMatrix, err := u.matrixRepo.GetMatrix(ctx, baseLineMatrixName, -1)
+	baseLineMatrix, err := u.matrixRepo.GetMatrix(ctx, baseLineMatrixName, mc, lc, -1)
 	if err != nil {
 		return models.PreparedStorage{}, err
 	}
@@ -87,7 +89,7 @@ func (u *updateService) PrepareStorage(ctx context.Context, baseLineMatrixName s
 	preparedStorage.BaseLineMatrix = baseLineMatrix
 
 	for _, discountMatrixName := range discountMatrixNames {
-		discountMatrix, err := u.matrixRepo.GetMatrix(ctx, discountMatrixName, -1)
+		discountMatrix, err := u.matrixRepo.GetMatrix(ctx, discountMatrixName, mc, lc, -1)
 		if err != nil {
 			return models.PreparedStorage{}, err
 		}

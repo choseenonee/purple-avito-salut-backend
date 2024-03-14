@@ -23,3 +23,11 @@ type MatrixBase struct {
 	ParentName string              `json:"parent_name"`
 	Data       []models.MatrixNode `json:"data"`
 }
+
+type Matrix struct {
+	Name       string              `json:"name"`
+	IsBaseLine bool                `json:"is_baseline"`
+	ParentName string              `json:"parent_name,omitempty"`
+	Data       []models.MatrixNode `json:"data"`
+	TimeStamp  time.Time           `json:"timestamp"`
+}

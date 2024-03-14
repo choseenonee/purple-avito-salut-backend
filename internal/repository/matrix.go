@@ -488,37 +488,55 @@ func (m matrixRepo) GetDifference(ctx context.Context, matrixName1, matrixName2 
 	return difference, nil
 }
 
-func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, page int) (models.Matrix, error) {
+func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, mc, rg null.Int, page int) (models.Matrix, error) {
 	var matrix models.Matrix
-
-	var selectQuery string
-
-	if page == -1 {
-		selectQuery = `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
-					JOIN matrix_metadata mm ON matrix.name = mm.matrix_name
-                    WHERE name = $1
-                    ORDER BY (microcategory_id, region_id) DESC`
-	} else {
-		selectQuery = `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
-					JOIN matrix_metadata mm ON matrix.name = mm.matrix_name
-                    WHERE name = $1
-                    ORDER BY (microcategory_id, region_id) DESC OFFSET $2 LIMIT $3;`
-	}
-
 	var rows *sqlx.Rows
 	var err error
 
 	if page == -1 {
+		selectQuery := `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
+					JOIN matrix_metadata mm ON matrix.name = mm.matrix_name
+                    WHERE name = $1
+                    ORDER BY (microcategory_id, region_id) DESC`
+
 		rows, err = m.db.QueryxContext(ctx, selectQuery, matrixName)
+
+		if err != nil {
+			return models.Matrix{}, err
+		}
 	} else {
-		rows, err = m.db.QueryxContext(ctx, selectQuery, matrixName, (page-1)*m.MaxOnPage, m.MaxOnPage)
+		selectQuery := `SELECT name, microcategory_id, region_id, price, mm.timestamp, mm.is_baseline, mm.parent_matrix_name FROM matrix
+						JOIN matrix_metadata mm ON matrix.name = mm.matrix_name`
+
+		queryParams := []interface{}{matrixName}
+		whereClauses := []string{"name = $1"}
+		if mc.Valid {
+			whereClauses = append(whereClauses, fmt.Sprintf("microcategory_id = $%d", len(queryParams)+1))
+			queryParams = append(queryParams, mc.Int64) // Добавляем значение mc в параметры запроса
+		}
+		if rg.Valid {
+			whereClauses = append(whereClauses, fmt.Sprintf("region_id = $%d", len(queryParams)+1))
+			queryParams = append(queryParams, rg.Int64) // Добавляем значение rg в параметры запроса
+		}
+
+		selectQuery += " WHERE " + strings.Join(whereClauses, " AND ")
+
+		offset := (page - 1) * m.MaxOnPage
+		selectQuery += fmt.Sprintf(" ORDER BY (microcategory_id, region_id) DESC OFFSET $%d LIMIT $%d", len(queryParams)+1, len(queryParams)+2)
+		queryParams = append(queryParams, offset, m.MaxOnPage)
+		fmt.Println(selectQuery)
+		fmt.Println(queryParams...)
+		rows, err = m.db.QueryxContext(ctx, selectQuery, queryParams...)
+
+		if err != nil {
+			return models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
+		}
 	}
-	if err != nil {
-		return models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.QueryRrr, Err: err})
-	}
+
 	defer rows.Close()
 
 	for rows.Next() {
+		fmt.Println("Asdadadadad")
 		var row models.MatrixNode
 
 		err := rows.Scan(&matrix.Name, &row.MicroCategoryID, &row.RegionID, &row.Price, &matrix.TimeStamp, &matrix.IsBaseLine, &matrix.ParentName)
@@ -532,6 +550,8 @@ func (m matrixRepo) GetMatrix(ctx context.Context, matrixName string, page int) 
 	if err := rows.Err(); err != nil {
 		return models.Matrix{}, customerr.ErrNormalizer(customerr.ErrorPair{Message: customerr.RowsErr, Err: err})
 	}
+
+	fmt.Println(matrix)
 
 	matrix.Name = matrixName
 

@@ -216,7 +216,7 @@ func TestBaseLineMatrixLoad(t *testing.T) {
 	}
 
 	_, err = tx.ExecContext(context.Background(), `INSERT INTO matrix_metadata 
-    (matrix_name, timestamp, is_baseline, parent_matrix_name) VALUES ('baseline_test_metadata', $1, 'true', $2);`, time.Now(), nil)
+    (matrix_name, timestamp, is_baseline, parent_matrix_name) VALUES ('baseline_test', $1, 'true', $2);`, time.Now(), nil)
 
 	err = tx.Commit()
 	if err != nil {

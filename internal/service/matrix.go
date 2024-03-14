@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/guregu/null"
 	"template/internal/models"
 	"template/internal/repository"
 	"time"
@@ -36,8 +37,8 @@ func (m matrixService) GetTendency(ctx context.Context, data models.GetTendencyN
 	return m.matrixRepo.GetPriceTendency(ctx, data)
 }
 
-func (m matrixService) GetMatrix(ctx context.Context, matrixName string, page int) (models.Matrix, error) {
-	return m.matrixRepo.GetMatrix(ctx, matrixName, page)
+func (m matrixService) GetMatrix(ctx context.Context, matrixName string, mc, rg null.Int, page int) (models.Matrix, error) {
+	return m.matrixRepo.GetMatrix(ctx, matrixName, mc, rg, page)
 }
 
 func (m matrixService) GetMatrixPages(ctx context.Context, matrixName string) (int, error) {

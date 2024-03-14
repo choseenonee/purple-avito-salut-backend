@@ -198,7 +198,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Found matrixes",
+                        "description": "Found matrices",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -312,6 +312,18 @@ const docTemplate = `{
                         "name": "page",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Microcategory ID if you need",
+                        "name": "microcategory_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Region ID if you need",
+                        "name": "region_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -320,7 +332,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Matrix"
+                                "$ref": "#/definitions/swagger.Matrix"
                             }
                         }
                     },
@@ -781,6 +793,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "time_start": {
+                    "type": "string"
+                }
+            }
+        },
+        "swagger.Matrix": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MatrixNode"
+                    }
+                },
+                "is_baseline": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_name": {
+                    "type": "string"
+                },
+                "timestamp": {
                     "type": "string"
                 }
             }

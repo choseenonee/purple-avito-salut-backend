@@ -134,6 +134,21 @@ definitions:
       time_start:
         type: string
     type: object
+  swagger.Matrix:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.MatrixNode'
+        type: array
+      is_baseline:
+        type: boolean
+      name:
+        type: string
+      parent_name:
+        type: string
+      timestamp:
+        type: string
+    type: object
   swagger.MatrixBase:
     properties:
       data:
@@ -278,7 +293,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Found matrixes
+          description: Found matrices
           schema:
             items:
               $ref: '#/definitions/swagger.ResponseHistoryMatrix'
@@ -352,6 +367,14 @@ paths:
         name: page
         required: true
         type: integer
+      - description: Microcategory ID if you need
+        in: query
+        name: microcategory_id
+        type: integer
+      - description: Region ID if you need
+        in: query
+        name: region_id
+        type: integer
       produces:
       - application/json
       responses:
@@ -359,7 +382,7 @@ paths:
           description: Successfully retrieved the specified page of the matrix
           schema:
             items:
-              $ref: '#/definitions/models.Matrix'
+              $ref: '#/definitions/swagger.Matrix'
             type: array
         "400":
           description: Invalid input, missing or incorrect parameters

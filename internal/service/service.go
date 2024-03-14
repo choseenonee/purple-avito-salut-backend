@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/guregu/null"
 	"template/internal/models"
 	"time"
 )
@@ -9,7 +10,7 @@ import (
 type Matrix interface {
 	CreateMatrix(ctx context.Context, matrix models.MatrixDifferenceRequest) (string, error)
 	CreateMatrixWithoutParent(ctx context.Context, matrix models.MatrixBase) (string, error)
-	GetMatrix(ctx context.Context, matrixName string, page int) (models.Matrix, error)
+	GetMatrix(ctx context.Context, matrixName string, mc, rg null.Int, page int) (models.Matrix, error)
 	GetMatrixPages(ctx context.Context, matrixName string) (int, error)
 	GetMatricesByDuration(ctx context.Context, timeStart, timeEnd time.Time) ([]models.Matrix, error)
 	GetHistory(ctx context.Context, matrix models.GetHistoryMatrix) ([]models.ResponseHistoryMatrix, error)

@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/guregu/null"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -251,11 +252,15 @@ func (m MatrixHandler) GetTendency(c *gin.Context) {
 // @Produce  json
 // @Param matrix_name query string true "Name of the matrix to retrieve"
 // @Param page query int true "Page number of the matrix to retrieve"
-// @Success 200 {object} []models.Matrix "Successfully retrieved the specified page of the matrix"
+// @Param microcategory_id query int false "Microcategory ID if you need"
+// @Param region_id query int false "Region ID if you need"
+// @Success 200 {object} []swagger.Matrix "Successfully retrieved the specified page of the matrix"
 // @Failure 400 {object} map[string]string "Invalid input, missing or incorrect parameters"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /matrix/get_matrix [get]
 func (m MatrixHandler) GetMatrix(c *gin.Context) {
+	var mc, rg null.Int
+
 	ctx, span := m.tracer.Start(c.Request.Context(), tracing.GetMatrix)
 	defer span.End()
 
@@ -279,6 +284,34 @@ func (m MatrixHandler) GetMatrix(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "pageStr not provided"})
 		return
 	}
+	mcStr, ok := c.GetQuery("microcategory_id")
+	if ok {
+		mcInt, err := strconv.Atoi(mcStr)
+		if err != nil {
+			span.RecordError(err, trace.WithAttributes(
+				attribute.String(tracing.QueryType, err.Error())),
+			)
+			span.SetStatus(codes.Error, err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{"error": "page can't interpret as int"})
+			return
+		}
+		mc.Int64 = int64(mcInt)
+		mc.Valid = true
+	}
+	pgStr, ok := c.GetQuery("region_id")
+	if ok {
+		pgInt, err := strconv.Atoi(pgStr)
+		if err != nil {
+			span.RecordError(err, trace.WithAttributes(
+				attribute.String(tracing.QueryType, err.Error())),
+			)
+			span.SetStatus(codes.Error, err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{"error": "page can't interpret as int"})
+			return
+		}
+		rg.Int64 = int64(pgInt)
+		rg.Valid = true
+	}
 	page, err := strconv.Atoi(pageStr)
 	if err != nil {
 		span.RecordError(err, trace.WithAttributes(
@@ -290,7 +323,7 @@ func (m MatrixHandler) GetMatrix(c *gin.Context) {
 	}
 
 	span.AddEvent(tracing.CallToService)
-	matrices, err := m.service.GetMatrix(ctx, matrixName, page)
+	matrices, err := m.service.GetMatrix(ctx, matrixName, mc, rg, page)
 	if err != nil {
 		span.RecordError(err, trace.WithAttributes(
 			attribute.String(tracing.GetMatrixType, err.Error())),

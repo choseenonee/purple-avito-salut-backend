@@ -34,8 +34,10 @@ func InitConfig() {
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(envPath)
-	err := viper.ReadInConfig()
 
+	viper.AutomaticEnv()
+
+	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to init config. Error:%v", err.Error()))
 	}

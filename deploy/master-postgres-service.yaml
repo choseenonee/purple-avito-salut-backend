@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: master-postgres
+  labels:
+    app: master-postgres
+spec:
+  ports:
+    - port: 5432
+      nodePort: 30007
+      targetPort: db-port
+  selector:
+    app: master-postgres
+  type: NodePort

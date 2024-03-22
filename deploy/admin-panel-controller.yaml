@@ -1,0 +1,21 @@
+kind: ReplicationController
+apiVersion: v1
+metadata:
+  name: admin-panel
+  labels:
+    app: admin-panel
+spec:
+  replicas: 1
+  selector:
+    app: admin-panel
+  template:
+    metadata:
+      labels:
+        app: admin-panel
+    spec:
+      containers:
+        - name: admin-panel
+          image: theechoseenonee/admin-panel:1.0
+          ports:
+            - name: http-server
+              containerPort: 8080

@@ -1,0 +1,23 @@
+kind: ReplicationController
+apiVersion: v1
+metadata:
+  name: trace
+  labels:
+    app: trace
+spec:
+  replicas: 1
+  selector:
+    app: trace
+  template:
+    metadata:
+      labels:
+        app: trace
+    spec:
+      containers:
+        - name: trace
+          image: jaegertracing/all-in-one
+          ports:
+            - name: trace-data
+              containerPort: 14268
+            - name: trace-dashboard
+              containerPort: 16686

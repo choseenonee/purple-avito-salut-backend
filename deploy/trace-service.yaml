@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: trace
+  labels:
+    app: trace
+spec:
+  ports:
+    - name: trace-data-port
+      port: 14268
+      targetPort: trace-data
+    - name: trace-dashboard-port
+      port: 16686
+      targetPort: trace-dashboard
+  selector:
+    app: trace
+  type: NodePort

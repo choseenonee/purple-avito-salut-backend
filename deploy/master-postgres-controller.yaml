@@ -1,0 +1,46 @@
+kind: ReplicationController
+apiVersion: v1
+metadata:
+  name: master-postgres
+  labels:
+    app: master-postgres
+spec:
+  replicas: 1
+  selector:
+    app: master-postgres
+  template:
+    metadata:
+      labels:
+        app: master-postgres
+    spec:
+      containers:
+        - name: master-postgres
+          image: postgres:latest
+          ports:
+            - name: db-port
+              containerPort: 5432
+          volumeMounts:
+            - name: master-postgres-storage
+              mountPath: /var/lib/postgresql/data
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-panel-config
+                  key: DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-panel-config
+                  key: DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-panel-config
+                  key: DB_PASSWORD
+      volumes:
+        - name: master-postgres-storage
+          persistentVolumeClaim:
+            claimName: master-postgres-pvc

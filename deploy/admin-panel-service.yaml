@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: admin-panel
+  labels:
+    app: admin-panel
+spec:
+  ports:
+    - port: 8080
+      targetPort: http-server
+  selector:
+    app: admin-panel
+  type: NodePort

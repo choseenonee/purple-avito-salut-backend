@@ -39,6 +39,6 @@ func InitConfig() {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to init config. Error:%v", err.Error()))
+		fmt.Println(fmt.Sprintf("Failed to init config. Error:%v", err.Error()))
 	}
 }

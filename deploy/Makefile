@@ -2,6 +2,7 @@
 DC = docker-compose
 DOC = docker
 GIT = git
+KUBE = kubectl
 
 # Define the service names as variables for easier reference
 APP_SERVICE = app
@@ -41,4 +42,17 @@ logs:
 update:
 	$(GIT) pull
 
-.PHONY: default start soft-restart hard-restart stop clean logs update
+kuber:
+	$(KUBE) apply -f admin-config-map.yaml
+	$(KUBE) apply -f master-postgres-pv.yaml
+	$(KUBE) apply -f master-postgres-deployment.yaml
+	$(KUBE) apply -f master-postgres-service.yaml
+	$(KUBE) apply -f trace-deployment.yaml
+	$(KUBE) apply -f trace-service.yaml
+	$(KUBE) apply -f admin-panel-deployment.yaml
+	$(KUBE) apply -f admin-panel-service.yaml
+
+kuber-clean:
+	$(KUBE) delete all --all
+
+.PHONY: default start soft-restart hard-restart stop clean logs update kuber

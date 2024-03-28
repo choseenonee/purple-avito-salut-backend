@@ -9,6 +9,6 @@ data:
   DB_PORT: "5432"
   DB_HOST: "master-postgres.default.svc.cluster.local"
   TIME_OUT: "20000"
-  JAEGER_HOST: "trace"
+  JAEGER_HOST: "trace.default.svc.cluster.local"
   JAEGER_PORT: "14268"
   MAX_ON_PAGE: "100"

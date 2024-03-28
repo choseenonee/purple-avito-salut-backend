@@ -16,25 +16,53 @@ spec:
     spec:
       containers:
         - name: admin-panel
-          image: theechoseenonee/admin-panel:3.0
+          image: theechoseenonee/admin-panel:4.0
           ports:
             - name: http-server
               containerPort: 8080
           env:
-            - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata
-            - name: POSTGRES_DB
+            - name: DB_NAME
               valueFrom:
                 configMapKeyRef:
                   name: admin-panel-config
                   key: DB_NAME
-            - name: POSTGRES_USER
+            - name: DB_USER
               valueFrom:
                 configMapKeyRef:
                   name: admin-panel-config
                   key: DB_USER
-            - name: POSTGRES_PASSWORD
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-panel-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-panel-config
+                  key: DB_PORT
+            - name: DB_PASSWORD
               valueFrom:
                 configMapKeyRef:
                   name: admin-panel-config
                   key: DB_PASSWORD
+            - name: JAEGER_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-panel-config
+                  key: JAEGER_HOST
+            - name: JAEGER_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-panel-config
+                  key: JAEGER_PORT
+            - name: MAX_ON_PAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-panel-config
+                  key: MAX_ON_PAGE
+            - name: TIME_OUT
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-panel-config
+                  key: TIME_OUT
